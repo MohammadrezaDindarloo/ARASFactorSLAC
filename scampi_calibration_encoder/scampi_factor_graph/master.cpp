@@ -1,5 +1,4 @@
 #include "src/main.cpp"
-#include <random>
 
 int main(int argc, char *argv[])
 {   
@@ -46,25 +45,88 @@ int main(int argc, char *argv[])
                -0.11309773,  0.9354347,  0.00895918,
                 0.04222684, -0.00420248,  0.99909921; 
 
-    std::cout << std::endl << "-------------------inverse result--------------------------" << std::endl;
-    std::vector<Eigen::Matrix<double, 3, 1>> p_platform_collection;
-    std::vector<Eigen::Matrix<double, 3, 3>> rot_platform_collection;
-    std::vector<Eigen::Matrix<double, 2, 1>> cable_forces_collection;
-    for (size_t i = 0; i < lenght_dataset_for_calibration; i++)
-    {   
-        double random_number_x = distribution_x(generator);
-        double random_number_y = distribution_y(generator);
-        double random_number_z = distribution_z(generator);
-        p_platform_collection.push_back(Eigen::Vector3d((0.2)+random_number_x, (-1.5)+random_number_y, (3.5)+random_number_z));
-        // start inverse optimization
-        std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init, p_platform_collection[i]);
-        // the result of inverse optimizationcd
-        rot_platform_collection.push_back(IKresults[0]);
-        cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));
+    // if true, save this co;;ection of data
+    if (false)
+    {
+        std::cout << std::endl << "-------------------inverse result--------------------------" << std::endl;
+        std::vector<Eigen::Matrix<double, 3, 1>> p_platform_collection;
+        std::vector<Eigen::Matrix<double, 3, 3>> rot_platform_collection;
+        std::vector<Eigen::Matrix<double, 2, 1>> cable_forces_collection;
+        for (size_t i = 0; i < lenght_dataset_for_calibration; i++)
+        {   
+            double random_number_x = distribution_x(generator);
+            double random_number_y = distribution_y(generator);
+            double random_number_z = distribution_z(generator);
+            p_platform_collection.push_back(Eigen::Vector3d((0.2)+random_number_x, (-1.5)+random_number_y, (3.5)+random_number_z));
+            // start inverse optimization
+            std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init, p_platform_collection[i]);
+            // the result of inverse optimizationcd
+            rot_platform_collection.push_back(IKresults[0]);
+            cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));
+        }
+        
+        // Save the vectors to a CSV file
+        std::ofstream file("./dataset/ClibrationDataSet.csv");
+
+        // Assuming all vectors have the same size (1000 in this case)
+        size_t vectorSize = lenght_dataset_for_calibration;
+
+        // Iterate through rows
+        for (size_t row = 0; row < vectorSize; ++row) {
+            // Write values for p_platform_collection as a single cell
+            file << p_platform_collection[row](0) << "," << p_platform_collection[row](1) << "," << p_platform_collection[row](2);
+            file << ",";  // Separate columns with a comma
+
+            // Write values for rot_platform_collection as a single cell
+            for (size_t i = 0; i < 9; ++i) {
+                file << rot_platform_collection[row](i);
+                if (i < 8) {
+                    file << ",";
+                }
+            }
+            file << ",";  // Separate columns with a comma
+
+            // Write values for cable_forces_collection as a single cell
+            file << cable_forces_collection[row](0) << "," << cable_forces_collection[row](1);
+
+            // Move to the next line after each row
+            file << "\n";
+        }
+        file.close();
     }
 
+    // Open the CSV file of data and record them in data vector
+    std::ifstream fileinput("./dataset/ClibrationDataSet.csv");
+    std::vector<std::vector<double>> data;
+    if (fileinput) {
+        std::string line;
+        while (getline(fileinput, line)) {
+            std::stringstream ss(line);
+            std::vector<double> row;
+            std::string val;
+            while (getline(ss, val, ',')) {
+                row.push_back(stod(val));
+            }
+            data.push_back(row);
+        }
+    std::cout << "Number of data: " << data.size() << std::endl;
+    } else {
+        std::cout << "Unable to open file." << std::endl;
+    }
+
+    std::vector<Eigen::Matrix<double, 3, 1>> p_platform_collection_dataset;
+    std::vector<Eigen::Matrix<double, 3, 3>> rot_platform_collection_dataset;
+    std::vector<Eigen::Matrix<double, 2, 1>> cable_forces_collection_dataset;
+    for (size_t i = 0; i < lenght_dataset_for_calibration; i++)
+    {
+        p_platform_collection_dataset.push_back(Eigen::Matrix<double, 3, 1>{data[i][0], data[i][1], data[i][2]});
+        cable_forces_collection_dataset.push_back(Eigen::Matrix<double, 2, 1>{data[i][12], data[i][13]});
+        rot_platform_collection_dataset.push_back(Eigen::Matrix<double, 3, 3>{ {data[i][3], data[i][6], data[i][9]}, {data[i][4], data[i][7], data[i][10]}, {data[i][5], data[i][8], data[i][11]} });
+    }
+    
     // start forward optimization
-    std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, pulley_position_estimate, cable_forces_collection, p_platform_collection, rot_platform_collection);
+    std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, pulley_position_estimate, cable_forces_collection_dataset, p_platform_collection_dataset, rot_platform_collection_dataset);
+    // std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, pulley_position_estimate, cable_forces_collection, p_platform_collection, rot_platform_collection);
     // the result of forward optimization
     std::cout << std::endl << "-------------------forward result--------------------------" << std::endl;
     std::cout << std::endl << "pulley_position: " << std::endl << FKresults[0] << std::endl;

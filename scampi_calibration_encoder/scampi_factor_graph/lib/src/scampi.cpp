@@ -211,10 +211,19 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
     NonlinearFactorGraph graph;
     Values initial_estimate;
 
+    // create noise for PTA mesurements
+    // create a random engine with a seed
+    std::default_random_engine generator(std::random_device{}());
+    // create a uniform distribution between two number
+    std::uniform_real_distribution<double> cable_1(-0.005, 0.005);
+    std::uniform_real_distribution<double> cable_2(-0.005, 0.005);
+    std::uniform_real_distribution<double> cable_3(-0.005, 0.005);
+    std::uniform_real_distribution<double> cable_4(-0.005, 0.005);
+    
     auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, sqrt(500));
-    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, sqrt(350));
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, sqrt(500));
     auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, sqrt(1));
-    auto Sensor_noiseModel_cost4 = gtsam::noiseModel::Isotropic::Sigma(4, sqrt(0.0065));
+    auto Sensor_noiseModel_cost4 = gtsam::noiseModel::Isotropic::Sigma(4, sqrt(0.0065)); 
     noiseModel::Isotropic::shared_ptr Sensor_noiseModel_betweenfactor = gtsam::noiseModel::Isotropic::Sigma(1, sqrt(0.01));
     noiseModel::Isotropic::shared_ptr Sensor_noiseModel_betweenfactor_one_variable = gtsam::noiseModel::Isotropic::Sigma(1, sqrt(0.01));
     noiseModel::Isotropic::shared_ptr prior_noiseModel = gtsam::noiseModel::Isotropic::Sigma(1, sqrt(0.01));
@@ -222,10 +231,21 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
 
     for (size_t i = 0; i < p_platform_collection.size(); i++)
     {
-        double b1_p1_distance = (b_in_w_collection[i][0] - p_in_w_collection[i][0]).norm()+0.65;
-        double b2_p2_distance = (b_in_w_collection[i][1] - p_in_w_collection[i][1]).norm()+0.52;
-        double b3_p3_distance = (b_in_w_collection[i][2] - p_in_w_collection[i][2]).norm()+0.32;
-        double b4_p4_distance = (b_in_w_collection[i][3] - p_in_w_collection[i][3]).norm()-0.65;
+        double random_noise_encoder_1 = cable_1(generator);
+        double random_noise_encoder_2 = cable_2(generator);
+        double random_noise_encoder_3 = cable_3(generator);
+        double random_noise_encoder_4 = cable_4(generator);
+
+        // double b1_p1_distance = (b_in_w_collection[i][0] - p_in_w_collection[i][0]).norm() + random_noise_encoder_1 + 10.65;
+        // double b2_p2_distance = (b_in_w_collection[i][1] - p_in_w_collection[i][1]).norm() + random_noise_encoder_2 + 5.52;
+        // double b3_p3_distance = (b_in_w_collection[i][2] - p_in_w_collection[i][2]).norm() + random_noise_encoder_3 + 9.32;
+        // double b4_p4_distance = (b_in_w_collection[i][3] - p_in_w_collection[i][3]).norm() + random_noise_encoder_4 + -8.65;
+
+        double b1_p1_distance = (b_in_w_collection[i][0] - p_in_w_collection[i][0]).norm() + 10.65;
+        double b2_p2_distance = (b_in_w_collection[i][1] - p_in_w_collection[i][1]).norm() + 5.52;
+        double b3_p3_distance = (b_in_w_collection[i][2] - p_in_w_collection[i][2]).norm() + 9.32;
+        double b4_p4_distance = (b_in_w_collection[i][3] - p_in_w_collection[i][3]).norm() + -8.65;
+
         gtsam::Vector4 distance_measure = {b1_p1_distance, b2_p2_distance, b3_p3_distance, b4_p4_distance};
 
         graph.add(std::make_shared<FK_factor_graph_cost1>(Symbol('h', i), Symbol('v', i), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), Symbol('p', 4), p_platform_collection[i], DeltaRot, quaternion_rot_init_collection[i][0], quaternion_rot_init_collection[i][1], quaternion_rot_init_collection[i][2], quaternion_rot_init_collection[i][3], Sensor_noiseModel_cost1));
@@ -233,11 +253,6 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
         graph.add(std::make_shared<FK_factor_graph_cost3>(Symbol('h', i), Symbol('v', i), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), Symbol('p', 4), p_platform_collection[i], DeltaRot, quaternion_rot_init_collection[i][0], quaternion_rot_init_collection[i][1], quaternion_rot_init_collection[i][2], quaternion_rot_init_collection[i][3], Sensor_noiseModel_cost3));
         graph.add(std::make_shared<FK_factor_graph_cost4>(Symbol('o', 0), Symbol('o', 1), Symbol('o', 2), Symbol('o', 3), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), Symbol('p', 4), Symbol('h', i), Symbol('v', i), distance_measure, p_platform_collection[i], DeltaRot, quaternion_rot_init_collection[i][0], quaternion_rot_init_collection[i][1], quaternion_rot_init_collection[i][2], quaternion_rot_init_collection[i][3], Sensor_noiseModel_cost4));
     }
-
-    // graph.add(gtsam::PriorFactor(Symbol('o', 0), 0.0, prior_noiseModel));
-    // graph.add(gtsam::PriorFactor(Symbol('o', 1), 0.0, prior_noiseModel));
-    // graph.add(gtsam::PriorFactor(Symbol('o', 2), 0.0, prior_noiseModel));
-    // graph.add(gtsam::PriorFactor(Symbol('o', 3), 0.0, prior_noiseModel));
 
     // initial_estimate for variables
     initial_estimate.insert(Symbol('p', 1), pulley_position_estimate[0]);

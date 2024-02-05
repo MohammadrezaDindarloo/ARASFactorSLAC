@@ -145,7 +145,7 @@ void getCableForces(T fh, T fv,
     platform_wrench << (T)0.,   (T)0.,  (T)robotparams_.f_g, (T)0.,   (T)0., (T)0.;
     // The cog modification recently added to the matlab implementation for the real data expriment
     Eigen::Matrix<T,3,1> const_vec((T)0,(T)0,(T)-1);
-    platform_wrench.block(3,0,3,1) = - geometric_vars.r_to_cog.cross(const_vec)*(T)(2.8*9.81);
+    platform_wrench.block(3,0,3,1) = - geometric_vars.r_to_cog.cross(const_vec)*(T)(robotparams_.f_g);
 
     // End of cog modification
     Eigen::Matrix<T, 2, 1> f_v(fh, fv);

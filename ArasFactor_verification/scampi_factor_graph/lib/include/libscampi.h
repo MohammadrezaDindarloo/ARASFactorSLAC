@@ -31,11 +31,9 @@ void ikSolver(RobotParameters<double> params,
               IKDataOut<double> *result);
 
 void forward_kinematic_factor_graph_optimizer(double lc0, double lc1, double lc2, double lc3,
-                              double rot_init_x, double rot_init_y, double rot_init_z, double rot_init_w, 
-                              double init_h1, double init_v1, double init_rx,  double init_ry,  double init_rz,
-                              double init_tx, double init_ty, double init_tz, gtsam::Values *result_LM);
+                              Eigen::Matrix3d rot_init, 
+                              double init_estimate_h1, double init_estimate_v1, gtsam::Rot3 init_estimate_rotation,
+                              gtsam::Point3 init_estimate_position, gtsam::Values *oprimization_result_LM);
 
-void inverse_kinematic_factor_graph_optimizer(double p_init_0, double p_init_1, double p_init_2,
-                              double rot_init_x, double rot_init_y, double rot_init_z, double rot_init_w, 
-                              int largest_cable,
-                              double init_h1, double init_v1, double init_rx,  double init_ry,  double init_rz, gtsam::Values *result_LM);
+void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Matrix3d rot_init, int largest_cable,
+                              double init_estimate_h1, double init_estimate_v1, gtsam::Rot3 init_estimate_rot, gtsam::Values *oprimization_result_LM);

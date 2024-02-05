@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {   
     std::vector<gtsam::Vector5> calibration_result;
-    int size_of_calib_sample = 150;
+    int size_of_calib_sample = 2;
     for (int interval = 0; interval < size_of_calib_sample; interval++)
     {
         double lenght_dataset_for_calibration = 500;

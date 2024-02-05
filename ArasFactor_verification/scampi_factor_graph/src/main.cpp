@@ -97,7 +97,9 @@ std::vector<MatrixXd> IK_Factor_Graph_Optimization(CableRobotParams robot_params
 
 // ****************************************** FK optimization *******************************************  
 // a function to modify parameters, invoke optimizer and harvest the result
-std::vector<MatrixXd> FK_Factor_Graph_Optimization(CableRobotParams robot_params, std::vector<Eigen::Matrix<double, 3, 1>> pulley_position_estimate, std::vector<Eigen::Matrix<double, 2, 1>> cable_forces_collection, std::vector<Eigen::Matrix<double, 3, 1>> p_platform_collection, std::vector<Eigen::Matrix<double, 3, 3>> rot_platform_collection, std::vector<Eigen::Matrix<double, 4, 1>> cable_length_collection)
+std::vector<MatrixXd> FK_Factor_Graph_Optimization(CableRobotParams robot_params, std::vector<Eigen::Matrix<double, 3, 1>> pulley_position_estimate, std::vector<Eigen::Matrix<double, 2, 1>> cable_forces_collection, 
+                                                   std::vector<Eigen::Matrix<double, 3, 1>> p_platform_collection, std::vector<Eigen::Matrix<double, 3, 3>> rot_platform_collection, 
+                                                   std::vector<Eigen::Matrix<double, 4, 1>> cable_length_collection, std::vector<Eigen::Matrix<double, 3, 3>> delta_rot_platform_collection)
 {
     std::vector<MatrixXd> results_list;
     FKDataOut<double> fk_results;
@@ -117,7 +119,7 @@ std::vector<MatrixXd> FK_Factor_Graph_Optimization(CableRobotParams robot_params
     params.g_c = robot_params.g_c_;
     params.f_g = robot_params.f_g_;
 
-    fkSolver(cable_length_collection, p_platform_collection, rot_platform_collection, pulley_position_estimate, cable_forces_collection, params, &fk_results);
+    fkSolver(delta_rot_platform_collection, cable_length_collection, p_platform_collection, rot_platform_collection, pulley_position_estimate, cable_forces_collection, params, &fk_results);
 
     int N = 4;
     MatrixXd pulley(3,N);

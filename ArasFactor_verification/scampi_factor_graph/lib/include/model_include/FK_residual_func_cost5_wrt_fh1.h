@@ -8,7 +8,6 @@
 
 #include <Eigen/Dense>
 
-#include <sym/pose3.h>
 #include <sym/rot3.h>
 
 namespace sym {
@@ -21,17 +20,14 @@ namespace sym {
  * Args:
  *     fh1: Scalar
  *     fv1: Scalar
- *     uwb_ofset0: Scalar
- *     uwb_ofset1: Scalar
- *     uwb_ofset2: Scalar
- *     uwb_ofset3: Scalar
  *     uwb_measure: Matrix41
  *     p_a: Matrix31
  *     p_b: Matrix31
  *     p_c: Matrix31
  *     p_d: Matrix31
  *     DeltaRot: Rot3
- *     TransformationMatrix: Pose3
+ *     position_vector: Matrix31
+ *     Rot_init: Rot3
  *     epsilon: Scalar
  *
  * Outputs:
@@ -39,28 +35,24 @@ namespace sym {
  */
 template <typename Scalar>
 Eigen::Matrix<Scalar, 4, 1> FkResidualFuncCost5WrtFh1(
-    const Scalar fh1, const Scalar fv1, const Scalar uwb_ofset0, const Scalar uwb_ofset1,
-    const Scalar uwb_ofset2, const Scalar uwb_ofset3,
-    const Eigen::Matrix<Scalar, 4, 1>& uwb_measure, const Eigen::Matrix<Scalar, 3, 1>& p_a,
-    const Eigen::Matrix<Scalar, 3, 1>& p_b, const Eigen::Matrix<Scalar, 3, 1>& p_c,
-    const Eigen::Matrix<Scalar, 3, 1>& p_d, const sym::Rot3<Scalar>& DeltaRot,
-    const sym::Pose3<Scalar>& TransformationMatrix, const Scalar epsilon) {
+    const Scalar fh1, const Scalar fv1, const Eigen::Matrix<Scalar, 4, 1>& uwb_measure,
+    const Eigen::Matrix<Scalar, 3, 1>& p_a, const Eigen::Matrix<Scalar, 3, 1>& p_b,
+    const Eigen::Matrix<Scalar, 3, 1>& p_c, const Eigen::Matrix<Scalar, 3, 1>& p_d,
+    const sym::Rot3<Scalar>& DeltaRot, const Eigen::Matrix<Scalar, 3, 1>& position_vector,
+    const sym::Rot3<Scalar>& Rot_init, const Scalar epsilon) {
   // Total ops: 0
 
   // Unused inputs
   (void)fh1;
   (void)fv1;
-  (void)uwb_ofset0;
-  (void)uwb_ofset1;
-  (void)uwb_ofset2;
-  (void)uwb_ofset3;
   (void)uwb_measure;
   (void)p_a;
   (void)p_b;
   (void)p_c;
   (void)p_d;
   (void)DeltaRot;
-  (void)TransformationMatrix;
+  (void)position_vector;
+  (void)Rot_init;
   (void)epsilon;
 
   // Input arrays

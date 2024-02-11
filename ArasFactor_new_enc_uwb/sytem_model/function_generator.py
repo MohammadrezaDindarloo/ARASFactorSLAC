@@ -211,6 +211,20 @@ def getCableForces(fh, fv, robotstate_, robotparams_, geometric_vars):
     for i in range(len(geometric_vars.sx)):
         robotstate_.cable_forces.append(cable_forces[2*i:2*i+2, 0])
 
+
+def get_cable_order(largest_cable):
+    if set(largest_cable) != set('0123'):
+        raise ValueError(f'Invalid input for cable length. '
+                 f'The cable number is incorrect, largest cable should be one of the permutations of 0, 1, 2, 3. Input: {largest_cable}')
+    order = [int(c) for c in largest_cable]
+    name = f'l{largest_cable}'
+    display(order)
+    return order, name
+
+def display(order):
+    print("Cable order:", order)
+
+
 # A function for the IK solver that puts the cable with the larges length as the first cable for numerical stability
 def changeOrderForSolver(state, params, largest_cable):
     N = len(params.pulleys)
@@ -221,178 +235,183 @@ def changeOrderForSolver(state, params, largest_cable):
     max_index = 0
     indeces = sf.Matrix([i for i in range(N)])
 
-    if largest_cable == '0123':
-        order[0] = 0
-        order[1] = 1
-        order[2] = 2
-        order[3] = 3
-        name = 'l0123'
+    try:
+        order, name = get_cable_order(largest_cable)
+    except ValueError as e:
+        print(e)
 
-    elif largest_cable == '0132':
-        order[0] = 0
-        order[1] = 1
-        order[2] = 3
-        order[3] = 2
-        name = 'l0132'
+    # if largest_cable == '0123':
+    #     order[0] = 0
+    #     order[1] = 1
+    #     order[2] = 2
+    #     order[3] = 3
+    #     name = 'l0123'
 
-    elif largest_cable == '0213':
-        order[0] = 0
-        order[1] = 2
-        order[2] = 1
-        order[3] = 3
-        name = 'l0213'
+    # elif largest_cable == '0132':
+    #     order[0] = 0
+    #     order[1] = 1
+    #     order[2] = 3
+    #     order[3] = 2
+    #     name = 'l0132'
+
+    # elif largest_cable == '0213':
+    #     order[0] = 0
+    #     order[1] = 2
+    #     order[2] = 1
+    #     order[3] = 3
+    #     name = 'l0213'
         
-    elif largest_cable == '0231':
-        order[0] = 0
-        order[1] = 2
-        order[2] = 3
-        order[3] = 1
-        name = 'l0231'
+    # elif largest_cable == '0231':
+    #     order[0] = 0
+    #     order[1] = 2
+    #     order[2] = 3
+    #     order[3] = 1
+    #     name = 'l0231'
 
-    elif largest_cable == '0312':
-        order[0] = 0
-        order[1] = 3
-        order[2] = 1
-        order[3] = 2
-        name = 'l0312'
+    # elif largest_cable == '0312':
+    #     order[0] = 0
+    #     order[1] = 3
+    #     order[2] = 1
+    #     order[3] = 2
+    #     name = 'l0312'
 
-    elif largest_cable == '0321':
-        order[0] = 0
-        order[1] = 3
-        order[2] = 2
-        order[3] = 1
-        name = 'l0321'
+    # elif largest_cable == '0321':
+    #     order[0] = 0
+    #     order[1] = 3
+    #     order[2] = 2
+    #     order[3] = 1
+    #     name = 'l0321'
 
-    elif largest_cable == '1023':
-        order[0] = 1
-        order[1] = 0
-        order[2] = 2
-        order[3] = 3
-        name = 'l1023'
+    # elif largest_cable == '1023':
+    #     order[0] = 1
+    #     order[1] = 0
+    #     order[2] = 2
+    #     order[3] = 3
+    #     name = 'l1023'
 
-    elif largest_cable == '1032':
-        order[0] = 1
-        order[1] = 0
-        order[2] = 3
-        order[3] = 2
-        name = 'l1032'
+    # elif largest_cable == '1032':
+    #     order[0] = 1
+    #     order[1] = 0
+    #     order[2] = 3
+    #     order[3] = 2
+    #     name = 'l1032'
 
-    elif largest_cable == '1203':
-        order[0] = 1
-        order[1] = 2
-        order[2] = 0
-        order[3] = 3
-        name = 'l1203'
+    # elif largest_cable == '1203':
+    #     order[0] = 1
+    #     order[1] = 2
+    #     order[2] = 0
+    #     order[3] = 3
+    #     name = 'l1203'
 
-    elif largest_cable == '1230':
-        order[0] = 1
-        order[1] = 2
-        order[2] = 3
-        order[3] = 0
-        name = 'l1230'
+    # elif largest_cable == '1230':
+    #     order[0] = 1
+    #     order[1] = 2
+    #     order[2] = 3
+    #     order[3] = 0
+    #     name = 'l1230'
 
-    elif largest_cable == '1302':
-        order[0] = 1
-        order[1] = 3
-        order[2] = 0
-        order[3] = 2
-        name = 'l1302'
+    # elif largest_cable == '1302':
+    #     order[0] = 1
+    #     order[1] = 3
+    #     order[2] = 0
+    #     order[3] = 2
+    #     name = 'l1302'
 
-    elif largest_cable == '1320':
-        order[0] = 1
-        order[1] = 3
-        order[2] = 2
-        order[3] = 0
-        name = 'l1320'
+    # elif largest_cable == '1320':
+    #     order[0] = 1
+    #     order[1] = 3
+    #     order[2] = 2
+    #     order[3] = 0
+    #     name = 'l1320'
 
-    elif largest_cable == '2013':
-        order[0] = 2
-        order[1] = 0
-        order[2] = 1
-        order[3] = 3
-        name = 'l2013'
+    # elif largest_cable == '2013':
+    #     order[0] = 2
+    #     order[1] = 0
+    #     order[2] = 1
+    #     order[3] = 3
+    #     name = 'l2013'
 
-    elif largest_cable == '2031':
-        order[0] = 2
-        order[1] = 0
-        order[2] = 3
-        order[3] = 1
-        name = 'l2031'
+    # elif largest_cable == '2031':
+    #     order[0] = 2
+    #     order[1] = 0
+    #     order[2] = 3
+    #     order[3] = 1
+    #     name = 'l2031'
 
-    elif largest_cable == '2103':
-        order[0] = 2
-        order[1] = 1
-        order[2] = 0
-        order[3] = 3
-        name = 'l2103'
+    # elif largest_cable == '2103':
+    #     order[0] = 2
+    #     order[1] = 1
+    #     order[2] = 0
+    #     order[3] = 3
+    #     name = 'l2103'
 
-    elif largest_cable == '2130':
-        order[0] = 2
-        order[1] = 1
-        order[2] = 3
-        order[3] = 0
-        name = 'l2130'
+    # elif largest_cable == '2130':
+    #     order[0] = 2
+    #     order[1] = 1
+    #     order[2] = 3
+    #     order[3] = 0
+    #     name = 'l2130'
 
-    elif largest_cable == '2301':
-        order[0] = 2
-        order[1] = 3
-        order[2] = 0
-        order[3] = 1
-        name = 'l2301'
+    # elif largest_cable == '2301':
+    #     order[0] = 2
+    #     order[1] = 3
+    #     order[2] = 0
+    #     order[3] = 1
+    #     name = 'l2301'
 
-    elif largest_cable == '2310':
-        order[0] = 2
-        order[1] = 3
-        order[2] = 1
-        order[3] = 0
-        name = 'l2310'
+    # elif largest_cable == '2310':
+    #     order[0] = 2
+    #     order[1] = 3
+    #     order[2] = 1
+    #     order[3] = 0
+    #     name = 'l2310'
 
-    elif largest_cable == '3012':
-        order[0] = 3
-        order[1] = 0
-        order[2] = 1
-        order[3] = 2
-        name = 'l3012'
+    # elif largest_cable == '3012':
+    #     order[0] = 3
+    #     order[1] = 0
+    #     order[2] = 1
+    #     order[3] = 2
+    #     name = 'l3012'
 
-    elif largest_cable == '3021':
-        order[0] = 3
-        order[1] = 0
-        order[2] = 2
-        order[3] = 1
-        name = 'l3021'
+    # elif largest_cable == '3021':
+    #     order[0] = 3
+    #     order[1] = 0
+    #     order[2] = 2
+    #     order[3] = 1
+    #     name = 'l3021'
 
-    elif largest_cable == '3102':
-        order[0] = 3
-        order[1] = 1
-        order[2] = 0
-        order[3] = 2
-        name = 'l3102'
+    # elif largest_cable == '3102':
+    #     order[0] = 3
+    #     order[1] = 1
+    #     order[2] = 0
+    #     order[3] = 2
+    #     name = 'l3102'
 
-    elif largest_cable == '3120':
-        order[0] = 3
-        order[1] = 1
-        order[2] = 2
-        order[3] = 0
-        name = 'l3120'
+    # elif largest_cable == '3120':
+    #     order[0] = 3
+    #     order[1] = 1
+    #     order[2] = 2
+    #     order[3] = 0
+    #     name = 'l3120'
 
-    elif largest_cable == '3201':
-        order[0] = 3
-        order[1] = 2
-        order[2] = 0
-        order[3] = 1
-        name = 'l3201'
+    # elif largest_cable == '3201':
+    #     order[0] = 3
+    #     order[1] = 2
+    #     order[2] = 0
+    #     order[3] = 1
+    #     name = 'l3201'
 
-    elif largest_cable == '3210':
-        order[0] = 3
-        order[1] = 2
-        order[2] = 1
-        order[3] = 0
-        name = 'l3210'
+    # elif largest_cable == '3210':
+    #     order[0] = 3
+    #     order[1] = 2
+    #     order[2] = 1
+    #     order[3] = 0
+    #     name = 'l3210'
         
-    else:
-        raise NameError('invalid input for cable lenght')
-        print("The cable number is incorrect, largest cable should be one of the 1, 2, 3, 0")
-    display(order)
+    # else:
+    #     raise NameError('invalid input for cable lenght')
+    #     print("The cable number is incorrect, largest cable should be one of the 1, 2, 3, 0")
+    # display(order)
     
     # Create a reordered params data structure
     params_reordered = RobotParameters

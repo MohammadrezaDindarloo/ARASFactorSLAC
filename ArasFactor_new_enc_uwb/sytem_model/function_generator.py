@@ -26,7 +26,9 @@ class GeometricVariables:
         self.b_in_w = []   # Body attachments in world frame
         self.b_rot = []    # Rotated Body attachment points to W
         self.sx = []       # Body to pulley directions projected on xy plane
-        self.r_to_cog = sf.Matrix([0, 0, 0])
+        self.s=[]           #unit vector along cable direction (assuming no sag)
+        self.r_to_cog = sf.Vector3(0, 0, 0)
+
 
 class CatenaryVariables:
     def __init__(self):
@@ -44,6 +46,7 @@ class RobotState:
         self.cable_forces = []    # Horizontal and vertical cable forces at body attachment point
         self.cable_forces_compact = sf.Matrix([0] * 8)
         self.wrench = sf.Matrix([0] * 6)
+        self.static_constrain = sf.Matrix21.zero()  # The static equilibrium constrain
 
 class RobotParameters:
     def __init__(self):
@@ -102,28 +105,30 @@ def calculate_norm(vector):
     return sf.sqrt(sum(component**2 for component in vector))
 
     # Compute the geometric variables based on the robot's state and parameters
-def getGeometricVariables(robotstate_, robotparams_, geometric_vars):
+def getGeometricVariables(robotstate_, robotparams_, geometric_vars: GeometricVariables):
     geometric_vars.b_rot.clear()
     geometric_vars.b_in_w.clear()
     geometric_vars.sx.clear()
+    geometric_vars.s.clear()
 
     for i in range(len(robotparams_.pulleys)):
         # Rotate the body attachment points into the world frame
-        rot_b = robotstate_.rot_platform.to_rotation_matrix() * sf.Matrix(robotparams_.ef_points[i]) 
+        rot_b = robotstate_.rot_platform.to_rotation_matrix() * sf.Matrix(robotparams_.ef_points[i])
         geometric_vars.b_rot.append(rot_b)
         # translate the rotated body point to the end-effector location
         b_in_w = rot_b + sf.Matrix(robotstate_.p_platform)
         geometric_vars.b_in_w.append(b_in_w)
         # compute the x-y projection of the direction from end-effector attachment point to the pulley
         sx = sf.Matrix(b_in_w) - sf.Matrix(robotparams_.pulleys[i])
+        s = sf.Matrix(b_in_w) - sf.Matrix(
+            robotparams_.pulleys[i])  # unit vector along cable direction (assuming no sag)
         sx[2] = 0.0
         geometric_vars.sx.append(sx / calculate_norm(sx))
-
+        geometric_vars.s.append(s / calculate_norm(s))
         geometric_vars.p_in_w.append(sf.Matrix(robotparams_.pulleys[i]))
-        
+
     geometric_vars.r_to_cog = robotstate_.rot_platform.to_rotation_matrix() * robotparams_.r_to_cog
 
-    
     # Compute the catenary variables from the robot's state and geometric parameters
 def getCatenaryVariables(robot_state, robot_params, geometric_vars, cat_vars):
     gc = robot_params.g_c  # for the sake of clarity
@@ -178,11 +183,19 @@ def constructStructuralMat(sx, b_rot):
 
     return A
 
+def constructStructuralMat_Non_Flatten(s, b_rot):
+    const_vec = sf.Matrix([0, 0, 1])
+    A = sf.Matrix64.zero()
+
+    for i in range(4):
+        A[0:3, i] = s[i]
+        A[3:6, i] = b_rot[i].cross(s[i])
+    return A
+
 # Compute the catenary variables from the robot's state and geometric parameters
-def getCableForces(fh, fv, robotstate_, robotparams_, geometric_vars):
+def getCableForces(fh, fv, robotstate_:RobotState, robotparams_, geometric_vars):
     structure_matrix = sf.Matrix68.zero()
     const_vec = sf.Matrix([0, 0, -1])
-    
     # The wrench applied to the end-effector
     platform_wrench = sf.Matrix([0, 0, robotparams_.f_g, 0, 0, 0])
 
@@ -195,12 +208,23 @@ def getCableForces(fh, fv, robotstate_, robotparams_, geometric_vars):
 
     structure_matrix = constructStructuralMat(geometric_vars.sx, geometric_vars.b_rot)
 
+    structure_matrix_Non_Flatten=constructStructuralMat_Non_Flatten(geometric_vars.s, geometric_vars.b_rot)
+
+    J_aT = structure_matrix_Non_Flatten[0:4, :]
+    J_uT = structure_matrix_Non_Flatten[4:6, :]
+    W_a = structure_matrix_Non_Flatten[0:4, 0]
+    W_u = structure_matrix_Non_Flatten[4:6, 0]
+
     # a subset of the structure matrix that defines the force in other cables as a function of forces of the first cable
     sub_structure_matrix = structure_matrix[0:6, 2:8]
     other_forces = sub_structure_matrix.inv() * (platform_wrench - structure_matrix[0:6, 0:2] * f_v[0:2, 0])
     cable_forces = sf.Matrix81.zero()
     cable_forces[0:2, 0] = f_v
     cable_forces[2:8, 0] = other_forces
+
+    static_constrain=J_uT*J_aT.inv()*W_a-W_u
+    robotstate_.static_constrain=static_constrain
+
 
     F = structure_matrix[0:3, 0:8] * cable_forces - sf.Matrix([0, 0, robotparams_.f_g])
     Torque = structure_matrix[3:6, 0:8] * cable_forces
@@ -218,10 +242,10 @@ def get_cable_order(largest_cable):
                  f'The cable number is incorrect, largest cable should be one of the permutations of 0, 1, 2, 3. Input: {largest_cable}')
     order = [int(c) for c in largest_cable]
     name = f'l{largest_cable}'
-    display(order)
+    display_order(order)
     return order, name
 
-def display(order):
+def display_order(order):
     print("Cable order:", order)
 
 
@@ -3543,13 +3567,15 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
     getCatenaryVariables(state, params, geom_vars, cat_vars)
     
 
-    residuals = [0] * (12)
+    residuals = [0] * (14)
     for i in range(len(params.ef_points)):
         fh = state.cable_forces[i][0]
         residuals[i] = cat_vars.yl_cat[i] - fh/gc * ( sf.cosh(gc/fh * (cat_vars.length[i] + cat_vars.c1[i])) - cat_vars.c2[i] )
         residuals[i+4] = calculate_norm(geom_vars.p_in_w[i]-geom_vars.b_in_w[i]) - lc_cat_measure[i]
         residuals[i+8] = cat_vars.lc_cat[i] - lc_cat_measure[i]
     
+    residuals[12:13]=state.static_constrain[0:2]
+
     cost_z = sf.Vector4.symbolic("P")
     for i in range(4):
         cost_z[i] = residuals[i] 

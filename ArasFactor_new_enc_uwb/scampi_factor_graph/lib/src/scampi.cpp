@@ -207,9 +207,9 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
     // auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.002); // UWB        0.001
     // auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.0004); // encoder   0.0002
 
-    auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.0003, 0.0003, 0.0003, 0.0003).finished());      // z 
-    auto Sensor_noiseModel_cost2 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.001/3.0, 0.001/3.0, 0.001/3.0, 0.001/3.0).finished());      // UWB
-    auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.001/3.0, 0.001/3.0, 0.001/3.0, 0.001/3.0).finished());  // encoder
+    auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.0002, 0.0002, 0.0002, 0.0002).finished());      // z 
+    auto Sensor_noiseModel_cost2 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.0005, 0.0005, 0.0005, 0.0005).finished());      // UWB
+    auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.0005, 0.0005, 0.0005, 0.0005).finished());  // encoder
 
     auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<pulley_noise, pulley_noise, pulley_noise).finished());
 
@@ -222,7 +222,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
         gtsam::Vector4 uwb_data = {uwb_data_1, uwb_data_2, uwb_data_3, uwb_data_4};
 
         graph.add(std::make_shared<FK_factor_graoh_cost1>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('t', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), cable_length_collection[i], rot_init_platform_collection[i], Sensor_noiseModel_cost1));
-        // graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('t', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), uwb_data, rot_init_platform_collection[i], Sensor_noiseModel_cost2));
+        graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('t', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), uwb_data, rot_init_platform_collection[i], Sensor_noiseModel_cost2));
         graph.add(std::make_shared<FK_factor_graoh_cost3>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('t', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), cable_length_collection[i], rot_init_platform_collection[i], Sensor_noiseModel_cost3));
 
         initial_estimate.insert(Symbol('h', i), cable_forces_collection[i][0]);
@@ -234,7 +234,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
     // graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('p', 0), pulley_position_estimate.row(0), prior_noiseModel_pulley));
     // graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('p', 1), pulley_position_estimate.row(1), prior_noiseModel_pulley));
     // graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('p', 2), pulley_position_estimate.row(2), prior_noiseModel_pulley));
-    // graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('p', 3), pulley_position_estimate.row(3), prior_noiseModel_pulley));
+    graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('p', 3), pulley_position_estimate.row(3), prior_noiseModel_pulley));
 
     initial_estimate.insert(Symbol('p', 0), gtsam::Point3(pulley_position_estimate.row(0)));
     initial_estimate.insert(Symbol('p', 1), gtsam::Point3(pulley_position_estimate.row(1)));

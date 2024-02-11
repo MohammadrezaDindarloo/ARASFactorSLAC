@@ -2,12 +2,12 @@
 
 int main(int argc, char *argv[])
 {   
-    int lenght_of_simulation_data = 100;
+    int lenght_of_simulation_data = 40;
     std::default_random_engine generator(std::random_device{}());
     std::uniform_real_distribution<double> distribution_x(-0.4, 0.4);
     std::uniform_real_distribution<double> distribution_y(-1.3, 1.3);
     std::uniform_real_distribution<double> distribution_z(-8.0, 3.0);
-    std::uniform_real_distribution<double> pulley_location_distribution(-0.15, 0.15);
+    std::uniform_real_distribution<double> pulley_location_distribution(-0.2, 0.2);
 
     // robot characteristic
     CableRobotParams robot_params(0.1034955, 43.164);
@@ -21,9 +21,9 @@ int main(int argc, char *argv[])
 
     Eigen::Matrix<double, 4, 3> pulley_position_estimate;
     pulley_position_estimate.row(0) = (Eigen::Vector3d (Pulley_a[0] + pulley_location_distribution(generator), Pulley_a[1] + pulley_location_distribution(generator), Pulley_a[2] + pulley_location_distribution(generator)));
-    pulley_position_estimate.row(1) = (Eigen::Vector3d (Pulley_b[0] + pulley_location_distribution(generator), Pulley_b[1] + pulley_location_distribution(generator), Pulley_b[2] + pulley_location_distribution(generator) ));
+    pulley_position_estimate.row(1) = (Eigen::Vector3d (Pulley_b[0] + pulley_location_distribution(generator), Pulley_b[1] + pulley_location_distribution(generator), Pulley_b[2] + pulley_location_distribution(generator)));
     pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0] + pulley_location_distribution(generator), Pulley_c[1] + pulley_location_distribution(generator), Pulley_c[2] + pulley_location_distribution(generator)));
-    pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0] + pulley_location_distribution(generator), Pulley_d[1] + pulley_location_distribution(generator), Pulley_d[2] + pulley_location_distribution(generator)));
+    pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0] + 0.00, Pulley_d[1] + 0.00, Pulley_d[2] + 0.00));
 
     Eigen::Vector3d Ee_a(-0.21 , -0.21 , -0.011);  
     Eigen::Vector3d Ee_b(0.21  , -0.21 , -0.011);

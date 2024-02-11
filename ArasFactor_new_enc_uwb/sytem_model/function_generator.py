@@ -3583,7 +3583,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
     cost_cat = sf.Vector4.symbolic("P")
     for i in range(4):
         cost_cat[i] = residuals[i+4] 
-
+#test
     cost_encoder = sf.Vector4.symbolic("P")
     for i in range(4):
         cost_encoder[i] = residuals[i+8] 

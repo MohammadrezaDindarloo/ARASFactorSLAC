@@ -78,6 +78,7 @@ namespace gtsam
                 Eigen::Matrix<double, 4, 3> Fkresidual_func_wrt_pd = sym::FkResidualFuncCost1WrtPd(fh1, fv1, SymforceFromGtsam(DeltaRot), position_vector, SymforceFromGtsam(EigenMatrixToGtsamRot3(rot_init)), encoder, p_a, p_b, p_c, p_d, sym::kDefaultEpsilon<double>);
                 *H8 = (Matrix(4, 3) << Fkresidual_func_wrt_pd).finished();
             }
+            // std::cout << "Fkresidual_func" << Fkresidual_func << std::endl;
             return (Vector(4) << Fkresidual_func).finished();
         }
     };

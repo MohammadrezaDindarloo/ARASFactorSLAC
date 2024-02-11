@@ -2,12 +2,12 @@
 
 int main(int argc, char *argv[])
 {   
-    int lenght_of_simulation_data = 60;
+    int lenght_of_simulation_data = 100;
     std::default_random_engine generator(std::random_device{}());
-    std::uniform_real_distribution<double> distribution_x(-0.5, 0.5);
-    std::uniform_real_distribution<double> distribution_y(-1.5, 1.5);
-    std::uniform_real_distribution<double> distribution_z(-4.0, 3.0);
-    std::uniform_real_distribution<double> pulley_location_distribution(-0.0, 0.0);
+    std::uniform_real_distribution<double> distribution_x(-0.4, 0.4);
+    std::uniform_real_distribution<double> distribution_y(-1.3, 1.3);
+    std::uniform_real_distribution<double> distribution_z(-8.0, 3.0);
+    std::uniform_real_distribution<double> pulley_location_distribution(-0.15, 0.15);
 
     // robot characteristic
     CableRobotParams robot_params(0.1034955, 43.164);
@@ -20,10 +20,10 @@ int main(int argc, char *argv[])
     robot_params.setPulleyPoses(Pulley_a, Pulley_b, Pulley_c, Pulley_d);
 
     Eigen::Matrix<double, 4, 3> pulley_position_estimate;
-    // pulley_position_estimate.row(0) = (Eigen::Vector3d (Pulley_a[0] + pulley_location_distribution(generator), Pulley_a[1] + pulley_location_distribution(generator), Pulley_a[2] + pulley_location_distribution(generator)));
-    // pulley_position_estimate.row(1) = (Eigen::Vector3d (Pulley_b[0] + pulley_location_distribution(generator), Pulley_b[1] + pulley_location_distribution(generator), Pulley_b[2] + pulley_location_distribution(generator)));
-    // pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0] + pulley_location_distribution(generator), Pulley_c[1] + pulley_location_distribution(generator), Pulley_c[2] + pulley_location_distribution(generator)));
-    // pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0] + pulley_location_distribution(generator), Pulley_d[1] + pulley_location_distribution(generator), Pulley_d[2] + pulley_location_distribution(generator)));
+    pulley_position_estimate.row(0) = (Eigen::Vector3d (Pulley_a[0] + pulley_location_distribution(generator), Pulley_a[1] + pulley_location_distribution(generator), Pulley_a[2] + pulley_location_distribution(generator)));
+    pulley_position_estimate.row(1) = (Eigen::Vector3d (Pulley_b[0] + pulley_location_distribution(generator), Pulley_b[1] + pulley_location_distribution(generator), Pulley_b[2] + pulley_location_distribution(generator) ));
+    pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0] + pulley_location_distribution(generator), Pulley_c[1] + pulley_location_distribution(generator), Pulley_c[2] + pulley_location_distribution(generator)));
+    pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0] + pulley_location_distribution(generator), Pulley_d[1] + pulley_location_distribution(generator), Pulley_d[2] + pulley_location_distribution(generator)));
 
     Eigen::Vector3d Ee_a(-0.21 , -0.21 , -0.011);  
     Eigen::Vector3d Ee_b(0.21  , -0.21 , -0.011);
@@ -69,16 +69,16 @@ int main(int argc, char *argv[])
 
     std::vector<Eigen::Matrix<double, 5, 1>> pulley_perturbation_result;
     // start forward optimization
-    for (int i = -15; i < 15; i++) // x
+    for (int i = -0; i < 1; i++) // x
     {   
-        for (int j = -15; j < 15; j++) // y
+        for (int j = -0; j < 1; j++) // y
         {   
             double disturbance_x = double(i)/100.0;
             double disturbance_y = double(j)/100.0;
-            pulley_position_estimate.row(0) = (Eigen::Vector3d (Pulley_a[0]+ disturbance_x, Pulley_a[1]+ disturbance_y, Pulley_a[2]));
-            pulley_position_estimate.row(1) = (Eigen::Vector3d (Pulley_b[0], Pulley_b[1], Pulley_b[2]));
-            pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0], Pulley_c[1], Pulley_c[2]));
-            pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0], Pulley_d[1], Pulley_d[2]));
+            // pulley_position_estimate.row(0) = (Eigen::Vector3d (Pulley_a[0]+ disturbance_x, Pulley_a[1]+ disturbance_y, Pulley_a[2]));
+            // pulley_position_estimate.row(1) = (Eigen::Vector3d (Pulley_b[0], Pulley_b[1], Pulley_b[2]));
+            // pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0], Pulley_c[1], Pulley_c[2]));
+            // pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0], Pulley_d[1], Pulley_d[2]));
 
             std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, cable_length_collection, cable_forces_collection, p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, pulley_position_estimate);
             // the result of forward optimization
@@ -103,10 +103,10 @@ int main(int argc, char *argv[])
             double error_pulley_optimized_c = (Eigen::Vector3d(FKresults[6].row(2)) - Pulley_c).norm() * 1000;
             double error_pulley_optimized_d = (Eigen::Vector3d(FKresults[6].row(3)) - Pulley_d).norm() * 1000;
             double sum_pulley_error_optimized = error_pulley_optimized_a + error_pulley_optimized_b + error_pulley_optimized_c + error_pulley_optimized_d;
-            // std::cout << std::endl << "A of pulley error  after  calibration  in  mm: " << error_pulley_optimized_a << std::endl;   
-            // std::cout << std::endl << "B of pulley error  after  calibration  in  mm: " << error_pulley_optimized_b << std::endl;   
-            // std::cout << std::endl << "C of pulley error  after  calibration  in  mm: " << error_pulley_optimized_c << std::endl;   
-            // std::cout << std::endl << "D of pulley error  after  calibration  in  mm: " << error_pulley_optimized_d << std::endl;   
+            std::cout << std::endl << "A of pulley error  after  calibration  in  mm: " << error_pulley_optimized_a << std::endl;   
+            std::cout << std::endl << "B of pulley error  after  calibration  in  mm: " << error_pulley_optimized_b << std::endl;   
+            std::cout << std::endl << "C of pulley error  after  calibration  in  mm: " << error_pulley_optimized_c << std::endl;   
+            std::cout << std::endl << "D of pulley error  after  calibration  in  mm: " << error_pulley_optimized_d << std::endl;   
             std::cout << std::endl << "sum of pulley error  after  calibration  in  mm: " << sum_pulley_error_optimized << std::endl;   
 
             // std::cout << std::endl << "*************************" << std::endl;
@@ -116,6 +116,9 @@ int main(int argc, char *argv[])
             // pulley_perturbation_result.push_back({FKresults[6].row(1)[0], FKresults[6].row(1)[1], FKresults[6].row(1)[2], FKresults[7](0, 0), sum_pulley_error_optimized});   
             // pulley_perturbation_result.push_back({FKresults[6].row(2)[0], FKresults[6].row(2)[1], FKresults[6].row(2)[2], FKresults[7](0, 0), sum_pulley_error_optimized});   
             // pulley_perturbation_result.push_back({FKresults[6].row(3)[0], FKresults[6].row(3)[1], FKresults[6].row(3)[2], FKresults[7](0, 0), sum_pulley_error_optimized});   
+
+            std::cout << std::endl << "p_platform_error in  mm: " << std::endl << (FKresults[1] - p_platform_collection[0]).norm() * 1000 << std::endl;
+
         }
     }
     // Save the vectors to a CSV file

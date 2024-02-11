@@ -3583,10 +3583,18 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
     cost_cat = sf.Vector4.symbolic("P")
     for i in range(4):
         cost_cat[i] = residuals[i+4] 
-#test
+
     cost_encoder = sf.Vector4.symbolic("P")
     for i in range(4):
-        cost_encoder[i] = residuals[i+8] 
+        cost_encoder[i] = residuals[i+8]
+
+    cost_static = sf.Vector2.symbolic("P")
+    for i in range(2):
+        cost_static[i]= residuals[i+12]
+
+
+
+
         
     print("\n--------------------generating header files FK---------------------")
     cost = cost_z
@@ -3904,6 +3912,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                       ) -> sf.Vector4:
         diff_pa = cost.jacobian(p_a)
         return sf.Matrix43(diff_pa)
+
     resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost3_wrt_pa, config=codegen.CppConfig(),)
     resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
 
@@ -3943,9 +3952,151 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                       ) -> sf.Vector4:
         diff_pd = cost.jacobian(p_d)
         return sf.Matrix43(diff_pd)
+
     resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost3_wrt_pd, config=codegen.CppConfig(),)
     resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
     print("--------------------cost_encoder header files generated FK----------")
+    cost = cost_static
+    def FK_residual_func_cost4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'),
+                               DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                               position_vector: sf.Vector3.symbolic("position_vector"),
+                               Rot_init: sf.Rot3.symbolic("Rot_init"),
+                               encoder: sf.V4.symbolic('encoder'),
+                               p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),
+                               p_d: sf.V3.symbolic("p_d"),
+                               epsilon: sf.Scalar = 0
+                               ) -> sf.Vector2:
+        return sf.V2(cost)
+
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost4, config=codegen.CppConfig(), )
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+    def FK_residual_func_cost4_wrt_DeltaRot(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'),
+                                            DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                                            position_vector: sf.Vector3.symbolic("position_vector"),
+                                            Rot_init: sf.Rot3.symbolic("Rot_init"),
+                                            encoder: sf.V4.symbolic('encoder'),
+                                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'),
+                                            p_c: sf.V3.symbolic("p_c"), p_d: sf.V3.symbolic("p_d"),
+                                            epsilon: sf.Scalar = 0
+                                            ) -> sf.Matrix23:
+        diff_DeltaRot = cost.jacobian(DeltaRot)
+        return sf.Matrix23(diff_DeltaRot)
+
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost4_wrt_DeltaRot,
+                                                     config=codegen.CppConfig(), )
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+    def FK_residual_func_cost4_wrt_fh1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'),
+                                       DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                                       position_vector: sf.Vector3.symbolic("position_vector"),
+                                       Rot_init: sf.Rot3.symbolic("Rot_init"),
+                                       encoder: sf.V4.symbolic('encoder'),
+                                       p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'),
+                                       p_c: sf.V3.symbolic("p_c"), p_d: sf.V3.symbolic("p_d"),
+                                       epsilon: sf.Scalar = 0
+                                       ) -> sf.Vector2:
+        diff_fh1 = cost.diff(fh1)
+        return sf.V2(diff_fh1)
+
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost4_wrt_fh1, config=codegen.CppConfig(), )
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+    def FK_residual_func_cost4_wrt_fv1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'),
+                                       DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                                       position_vector: sf.Vector3.symbolic("position_vector"),
+                                       Rot_init: sf.Rot3.symbolic("Rot_init"),
+                                       encoder: sf.V4.symbolic('encoder'),
+                                       p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'),
+                                       p_c: sf.V3.symbolic("p_c"), p_d: sf.V3.symbolic("p_d"),
+                                       epsilon: sf.Scalar = 0
+                                       ) -> sf.Vector2:
+        diff_fv1 = cost.diff(fv1)
+        return sf.V2(diff_fv1)
+
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost4_wrt_fv1, config=codegen.CppConfig(), )
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+    def FK_residual_func_cost4_wrt_position_vector(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'),
+                                                   DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                                                   position_vector: sf.Vector3.symbolic("position_vector"),
+                                                   Rot_init: sf.Rot3.symbolic("Rot_init"),
+                                                   encoder: sf.V4.symbolic('encoder'),
+                                                   p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'),
+                                                   p_c: sf.V3.symbolic("p_c"), p_d: sf.V3.symbolic("p_d"),
+                                                   epsilon: sf.Scalar = 0
+                                                   ) -> sf.Matrix23:
+        diff_position_vector = cost.jacobian(position_vector)
+        return sf.Matrix23(diff_position_vector)
+
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost4_wrt_position_vector,
+                                                     config=codegen.CppConfig(), )
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+    def FK_residual_func_cost4_wrt_pa(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'),
+                                      DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                                      position_vector: sf.Vector3.symbolic("position_vector"),
+                                      Rot_init: sf.Rot3.symbolic("Rot_init"),
+                                      encoder: sf.V4.symbolic('encoder'),
+                                      p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'),
+                                      p_c: sf.V3.symbolic("p_c"), p_d: sf.V3.symbolic("p_d"),
+                                      epsilon: sf.Scalar = 0
+                                      ) -> sf.Matrix23:
+        diff_pa = cost.jacobian(p_a)
+        return sf.Matrix23(diff_pa)
+
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost4_wrt_pa, config=codegen.CppConfig(), )
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+    def FK_residual_func_cost4_wrt_pb(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'),
+                                      DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                                      position_vector: sf.Vector3.symbolic("position_vector"),
+                                      Rot_init: sf.Rot3.symbolic("Rot_init"),
+                                      encoder: sf.V4.symbolic('encoder'),
+                                      p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'),
+                                      p_c: sf.V3.symbolic("p_c"), p_d: sf.V3.symbolic("p_d"),
+                                      epsilon: sf.Scalar = 0
+                                      ) -> sf.Matrix23:
+        diff_pb = cost.jacobian(p_b)
+        return sf.Matrix23(diff_pb)
+
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost4_wrt_pb, config=codegen.CppConfig(), )
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+    def FK_residual_func_cost4_wrt_pc(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'),
+                                      DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                                      position_vector: sf.Vector3.symbolic("position_vector"),
+                                      Rot_init: sf.Rot3.symbolic("Rot_init"),
+                                      encoder: sf.V4.symbolic('encoder'),
+                                      p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'),
+                                      p_c: sf.V3.symbolic("p_c"), p_d: sf.V3.symbolic("p_d"),
+                                      epsilon: sf.Scalar = 0
+                                      ) -> sf.Matrix23:
+        diff_pc = cost.jacobian(p_c)
+        return sf.Matrix23(diff_pc)
+
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost4_wrt_pc, config=codegen.CppConfig(), )
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+    def FK_residual_func_cost4_wrt_pd(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'),
+                                      DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                                      position_vector: sf.Vector3.symbolic("position_vector"),
+                                      Rot_init: sf.Rot3.symbolic("Rot_init"),
+                                      encoder: sf.V4.symbolic('encoder'),
+                                      p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'),
+                                      p_c: sf.V3.symbolic("p_c"), p_d: sf.V3.symbolic("p_d"),
+                                      epsilon: sf.Scalar = 0
+                                      ) -> sf.Matrix23:
+        diff_pd = cost.jacobian(p_d)
+        return sf.Matrix23(diff_pd)
+
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost4_wrt_pd, config=codegen.CppConfig(), )
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+    print("--------------------cost_static_constrain header files generated FK---------------")
+
+
+
     
     print("************************** FK & IK files **************************")
 

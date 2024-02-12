@@ -9,9 +9,9 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     NonlinearFactorGraph graph;
     Values initial_estimate;
 
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.002);
-    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 10.0);
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 100.0);
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.003/3); // 002
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.15/3); // 10.0
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 10.0); // 100.0
 
     graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost1));
     graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost2));
@@ -30,7 +30,6 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     if (optimizer.error() > 1e0)
     {
         std::cout << std::endl << "!!!!!!!!!!!!!! inverse kinematic error is too high !!!!!!!!!!!!!!" << std::endl;
-        std::cout << std::endl << "!!!!!!!!!!!!!! p_init !!!!!!!!!!!!!!" << p_init << std::endl;
     }
     *oprimization_result_LM = result_LM;
 }
@@ -203,15 +202,17 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
     NonlinearFactorGraph graph;
     Values initial_estimate;
     double pulley_noise = 1e-5;
-    // auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.001); // z          0.001
-    // auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.002); // UWB        0.001
-    // auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.0004); // encoder   0.0002
+    double position_noise = 1e-3;
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.0001/3.0); // z          0.001
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.002); // UWB        0.001
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.0001/3.0); // encoder   0.0002
 
-    auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.0002, 0.0002, 0.0002, 0.0002).finished());      // z 
-    auto Sensor_noiseModel_cost2 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.0005, 0.0005, 0.0005, 0.0005).finished());      // UWB
-    auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.0005, 0.0005, 0.0005, 0.0005).finished());  // encoder
+    // auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.00095/3.0, 0.00095/3.0, 0.00095/3.0, 0.00095/3.0).finished());      // z  0.00035
+    // auto Sensor_noiseModel_cost2 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.0005, 0.0005, 0.0005, 0.0005).finished());      // UWB
+    // auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<0.002/3.0, 0.002/3.0, 0.002/3.0, 0.002/3.0).finished());  // encoder  0.0007
 
     auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<pulley_noise, pulley_noise, pulley_noise).finished());
+    auto prior_noiseModel_position = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<position_noise, position_noise, position_noise).finished());
 
     for (size_t i = 0; i < p_platform_collection.size(); i++)
     {
@@ -222,19 +223,15 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
         gtsam::Vector4 uwb_data = {uwb_data_1, uwb_data_2, uwb_data_3, uwb_data_4};
 
         graph.add(std::make_shared<FK_factor_graoh_cost1>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('t', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), cable_length_collection[i], rot_init_platform_collection[i], Sensor_noiseModel_cost1));
-        graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('t', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), uwb_data, rot_init_platform_collection[i], Sensor_noiseModel_cost2));
+        // graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('t', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), uwb_data, rot_init_platform_collection[i], Sensor_noiseModel_cost2));
         graph.add(std::make_shared<FK_factor_graoh_cost3>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('t', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), cable_length_collection[i], rot_init_platform_collection[i], Sensor_noiseModel_cost3));
+        graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('t', i), p_platform_collection[i], prior_noiseModel_position));
 
         initial_estimate.insert(Symbol('h', i), cable_forces_collection[i][0]);
         initial_estimate.insert(Symbol('v', i), cable_forces_collection[i][1]);
         initial_estimate.insert(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i]));
         initial_estimate.insert(Symbol('t', i), p_platform_collection[i]);
     }
-
-    // graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('p', 0), pulley_position_estimate.row(0), prior_noiseModel_pulley));
-    // graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('p', 1), pulley_position_estimate.row(1), prior_noiseModel_pulley));
-    // graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('p', 2), pulley_position_estimate.row(2), prior_noiseModel_pulley));
-    graph.add(gtsam::PriorFactor<gtsam::Point3>(Symbol('p', 3), pulley_position_estimate.row(3), prior_noiseModel_pulley));
 
     initial_estimate.insert(Symbol('p', 0), gtsam::Point3(pulley_position_estimate.row(0)));
     initial_estimate.insert(Symbol('p', 1), gtsam::Point3(pulley_position_estimate.row(1)));
@@ -244,27 +241,9 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
     gtsam::LevenbergMarquardtParams params; 
     params.relativeErrorTol = 1e-23;
     int max_iterations = params.maxIterations;
+    params.setVerbosityLM("SUMMARY");
     LevenbergMarquardtOptimizer optimizer(graph, initial_estimate, params);
     Values result_LM = optimizer.optimize();
-
-    // // Set up variables for iteration and convergence check
-    // double convergence_threshold = 1e-9; // Set your desired convergence threshold
-    // int iteration = 0;
-    // while (iteration < max_iterations) 
-    // {
-    //     // Run one iteration of the optimizer
-    //     optimizer.iterate();
-    //     // Get the current error after the iteration
-    //     double current_error = optimizer.error();
-    //     // Print the error for this iteration
-    //     std::cout << "Iteration " << iteration + 1 << ": Error = " << current_error << std::endl;
-    //     // Check for convergence
-    //     if (current_error < convergence_threshold) {
-    //         std::cout << "Converged at iteration " << iteration + 1 << std::endl;
-    //         break;
-    //     }
-    //     iteration++;
-    // }
 
     std::cout << std::endl << "forward kinematic optimization error: " << optimizer.error() << std::endl;
     *optimizer_error = optimizer.error();

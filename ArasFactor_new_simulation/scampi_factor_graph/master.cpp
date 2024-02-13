@@ -2,11 +2,11 @@
 
 int main(int argc, char *argv[])
 {   
-    int lenght_of_simulation_data = 40;
+    int lenght_of_simulation_data = 15;
     std::default_random_engine generator(std::random_device{}());
     std::uniform_real_distribution<double> distribution_x(-0.4, 0.4);
     std::uniform_real_distribution<double> distribution_y(-1.3, 1.3);
-    std::uniform_real_distribution<double> distribution_z(-8.0, 3.0);
+    std::uniform_real_distribution<double> distribution_z(-2.0, 2.0);
     std::uniform_real_distribution<double> pulley_location_distribution(-0.288675135, 0.288675135);
 
     // robot characteristic
@@ -92,14 +92,14 @@ int main(int argc, char *argv[])
     std::cout << std::endl << "D of pulley error  after  calibration  in  mm: " << error_pulley_optimized_d << std::endl;   
     std::cout << std::endl << "sum of pulley error  after  calibration  in  mm: " << sum_pulley_error_optimized << std::endl;
 
-    // std::ofstream file_Optimized_pose_slakc("./dataset/Optimized_pose_slakc.csv"); // Optimized_pose_slakc      Optimized_pose_localization
+    // std::ofstream file_Optimized_pose_slakc("./result/Optimized_pose_slakc.csv"); // Optimized_pose_slakc      Optimized_pose_localization
     // for (const auto& calib : Optimized_pose) // Loop through the vector elements
     // {
     //     file_Optimized_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line
     // }
     // file_Optimized_pose_slakc.close(); // Close the file stream 
 
-    // std::ofstream file_GT_pose_slakc("./dataset/GT_pose_slakc.csv"); // GT_pose_slakc     GT_pose_localization
+    // std::ofstream file_GT_pose_slakc("./result/GT_pose_slakc.csv"); // GT_pose_slakc     GT_pose_localization
     // for (const auto& calib : GT_pose) // Loop through the vector elements
     // {
     //     file_GT_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line

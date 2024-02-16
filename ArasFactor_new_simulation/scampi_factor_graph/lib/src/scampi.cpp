@@ -9,9 +9,9 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     NonlinearFactorGraph graph;
     Values initial_estimate;
 
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.001/3.0); // 0.003/3
-    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 1.5/3.0); // 0.15/3
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 10.0); // 10.0
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.02/3.0); // 0.003/3
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.5/3.0); // 0.15/3
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.1/3); // 10.0
 
     graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost1));
     graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost2));
@@ -27,7 +27,7 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     Values result_LM = optimizer.optimize();
 
     std::cout << std::endl << "inverse kinematic optimization error: " << optimizer.error() << std::endl;
-    if (optimizer.error() > 1e0)
+    if (optimizer.error() > 1e2)
     {
         std::cout << std::endl << "!!!!!!!!!!!!!! inverse kinematic error is too high !!!!!!!!!!!!!!" << std::endl;
     }
@@ -203,28 +203,44 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
 {
     NonlinearFactorGraph graph;
     Values initial_estimate;
-
+    bool prior_factory, odometry_factory;
+    auto sensor_mode = odometry_factory;
     std::default_random_engine generator(std::random_device{}());
+
+    // noise hander
+    double all_noise_activation = 1.0;
 
     // Encoder noise model
     double encoder_noise_gain = 1.0;
+    encoder_noise_gain = encoder_noise_gain * all_noise_activation;
     std::normal_distribution<double> encoder_noise(0.0, encoder_noise_gain * (0.001)/3.0); // 0.1 degree in orientation error
 
     // UWB noise model
     double uwb_noise_gain = 1.0;
+    uwb_noise_gain = uwb_noise_gain * all_noise_activation;
     std::normal_distribution<double> uwb_noise(0.0, uwb_noise_gain * (0.020)/3.0); // 0.1 degree in orientation error
 
-    // Odomerty error
     gtsam::Point3 PositionNoise;
-    double odometry_noise_gain = 1.0;
-    std::normal_distribution<double> poistion_noise(0.0, odometry_noise_gain * (0.001/sqrt(3.0))/3.0); // 1 mm in position error
-    std::normal_distribution<double> orientation_noise(0.0, odometry_noise_gain * (0.1/sqrt(3.0) * M_PI / 180.0)/3.0); // 0.1 degree in orientation error
+    gtsam::Rot3 orientationNoise;
+    auto prior_noiseModel_init_pose = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
 
-    // Noise model for odometry and prior pose
-    double translationnoise = 0.0015/sqrt(3.0)/3.0; //in meter 
-    double orientationnoise = (0.15 * M_PI / 180.0)/sqrt(3.0)/3.0; // in degree and convert to radian
-    auto noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise,translationnoise,translationnoise,orientationnoise,orientationnoise,orientationnoise).finished());
-    auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<1e-6, 1e-6, 1e-6, 1e-4, 1e-4, 1e-4).finished());
+    // Noise model for odometry pose
+    double odometry_noise_gain_odometry = 1.0;
+    odometry_noise_gain_odometry = odometry_noise_gain_odometry * all_noise_activation;
+    std::normal_distribution<double> poistion_noise_odometry(0.0, odometry_noise_gain_odometry * (0.001/sqrt(3.0))/3.0); // 1 mm in position error
+    std::normal_distribution<double> orientation_noise_odometry(0.0, odometry_noise_gain_odometry * (0.1/sqrt(3.0) * M_PI / 180.0)/3.0); // 0.1 degree in orientation error
+    double translationnoise_odometry = 0.001/sqrt(3.0)/3.0; //in meter 
+    double orientationnoise_odometry = (0.1/sqrt(3.0) * M_PI / 180.0)/3.0; // in degree and convert to radian
+    auto noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_odometry,translationnoise_odometry,translationnoise_odometry,orientationnoise_odometry,orientationnoise_odometry,orientationnoise_odometry).finished());
+   
+    // Noise model for prior pose
+    double odometry_noise_gain_prior = 1.0;
+    odometry_noise_gain_prior = odometry_noise_gain_prior * all_noise_activation;
+    std::normal_distribution<double> poistion_noise_prior(0.0, odometry_noise_gain_prior * (0.005/sqrt(3.0))/3.0); // 1 mm in position error
+    std::normal_distribution<double> orientation_noise_prior(0.0, odometry_noise_gain_prior * (0.5/sqrt(3.0) * M_PI / 180.0)/3.0); // 0.1 degree in orientation error
+    double translationnoise_prior = 0.005/3.0; //in meter 
+    double orientationnoise_prior = (0.5 * M_PI / 180.0)/3.0; // in degree and convert to radian
+    auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
 
     // Cost noise models
     auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, (0.001/sqrt(3.0))/3.0); // z         
@@ -233,7 +249,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;
-    graph.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(Symbol('X', 0), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[0]), p_platform_collection[0]), prior_noiseModel_pose3);
+    graph.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(Symbol('X', 0), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[0]), p_platform_collection[0]), prior_noiseModel_init_pose);
     for (size_t i = 0; i < p_platform_collection.size()-1; i++)
     {
         double uwb_data_1 = (b_in_w_collection[i][0] - p_in_w_collection[i][0]).norm() + uwb_noise(generator);
@@ -252,30 +268,62 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
         // graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), uwb_data, Sensor_noiseModel_cost2));
         graph.add(std::make_shared<FK_factor_graoh_cost3>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), enc_data, Sensor_noiseModel_cost3));
 
-        // Robot Pose Factor
-        gtsam::Pose3 pose_k = gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i]), p_platform_collection[i]);
-        GT_pose_.push_back(pose_k);
-        gtsam::Pose3 pose_k_plus1 = gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i+1]), p_platform_collection[i+1]);
-        gtsam::Pose3 relativePose = pose_k.between(pose_k_plus1);
-        // Generate random position noise
-        PositionNoise.x() = poistion_noise(generator);
-        PositionNoise.y() = poistion_noise(generator);
-        PositionNoise.z() = poistion_noise(generator);
-        gtsam::Point3 noisyPosition = relativePose.translation() + PositionNoise;
-        // Generate random orientation noise
-        gtsam::Rot3 orientationNoise = gtsam::Rot3::Expmap(gtsam::Vector3(orientation_noise(generator), orientation_noise(generator), orientation_noise(generator)));
-        gtsam::Rot3 noisyOrientation = relativePose.rotation() * orientationNoise; 
-        gtsam::Pose3 noisyRelativePose = gtsam::Pose3(noisyOrientation, noisyPosition);
-        graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose3>>(Symbol('X', i), Symbol('X', i+1), noisyRelativePose, noiseModel_pose3);
 
+        if (sensor_mode == prior_factory)
+        {
+            // ******** prior factor ********
+            gtsam::Pose3 pose_k;
+            gtsam::Pose3 pose_k_GT;
+            if (i == 0)
+            {
+                pose_k = gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i]), p_platform_collection[i]);
+                pose_k_GT = pose_k;
+            }
+            else
+            {
+                // Generate random position noise
+                PositionNoise.x() = poistion_noise_prior(generator);
+                PositionNoise.y() = poistion_noise_prior(generator);
+                PositionNoise.z() = poistion_noise_prior(generator);
+                gtsam::Point3 noisyPosition = p_platform_collection[i] + PositionNoise;
+                // Generate random orientation noise
+                orientationNoise = gtsam::Rot3::Expmap(gtsam::Vector3(orientation_noise_prior(generator), orientation_noise_prior(generator), orientation_noise_prior(generator)));
+                gtsam::Rot3 noisyOrientation = EigenMatrixToGtsamRot3(rot_init_platform_collection[i]) * orientationNoise;
+                pose_k = gtsam::Pose3(noisyOrientation, noisyPosition);
+                pose_k_GT = gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i]), p_platform_collection[i]);
+                graph.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(Symbol('X', i), pose_k, prior_noiseModel_pose3);
+            }
+            GT_pose_.push_back(pose_k);
+        }
+        
+        else
+        {
+            // ******** odometry factor ********
+            gtsam::Pose3 pose_k = gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i]), p_platform_collection[i]);
+            GT_pose_.push_back(pose_k);
+            gtsam::Pose3 pose_k_plus1 = gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i+1]), p_platform_collection[i+1]);
+            gtsam::Pose3 relativePose = pose_k.between(pose_k_plus1);
+            // Generate random position noise
+            PositionNoise.x() = poistion_noise_odometry(generator);
+            PositionNoise.y() = poistion_noise_odometry(generator);
+            PositionNoise.z() = poistion_noise_odometry(generator);
+            gtsam::Point3 noisyPosition = relativePose.translation() + PositionNoise;
+            // Generate random orientation noise
+            orientationNoise = gtsam::Rot3::Expmap(gtsam::Vector3(orientation_noise_odometry(generator), orientation_noise_odometry(generator), orientation_noise_odometry(generator)));
+            gtsam::Rot3 noisyOrientation = relativePose.rotation() * orientationNoise; 
+            gtsam::Pose3 noisyRelativePose = gtsam::Pose3(noisyOrientation, noisyPosition);
+            graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose3>>(Symbol('X', i), Symbol('X', i+1), noisyRelativePose, noiseModel_pose3);
+            if (i==p_platform_collection.size()-2)
+            {
+                initial_estimate.insert(Symbol('X', p_platform_collection.size()-1), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[p_platform_collection.size()-1]), p_platform_collection[p_platform_collection.size()-1]));
+            }
+        }
         initial_estimate.insert(Symbol('h', i), cable_forces_collection[i][0]);
         initial_estimate.insert(Symbol('v', i), cable_forces_collection[i][1]);
         initial_estimate.insert(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i])); 
         initial_estimate.insert(Symbol('X', i), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i]) * orientationNoise, p_platform_collection[i] + PositionNoise));
     }
 
-    initial_estimate.insert(Symbol('X', p_platform_collection.size()-1), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[p_platform_collection.size()-1]), p_platform_collection[p_platform_collection.size()-1]));
-   
     initial_estimate.insert(Symbol('p', 0), gtsam::Point3(pulley_position_estimate.row(0)));
     initial_estimate.insert(Symbol('p', 1), gtsam::Point3(pulley_position_estimate.row(1)));
     initial_estimate.insert(Symbol('p', 2), gtsam::Point3(pulley_position_estimate.row(2)));
@@ -284,7 +332,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 
     gtsam::LevenbergMarquardtParams params; 
     int max_iterations = params.maxIterations;
     std::cout << std::endl;
-    params.setVerbosityLM("SUMMARY");
+    // params.setVerbosityLM("SUMMARY");
     LevenbergMarquardtOptimizer optimizer(graph, initial_estimate, params);
     Values result_LM = optimizer.optimize();
     for (size_t i = 0; i < p_platform_collection.size()-1; i++)

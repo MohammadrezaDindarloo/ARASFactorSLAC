@@ -166,7 +166,10 @@ def getCatenaryVariables(robot_state, robot_params, geometric_vars, cat_vars):
 
         cat_vars.c2.append(C2)
 
+        E = 131.0 * 10**9
+        A = 0.785
         # Compute the true cable length
+        # lc_cat = (1 - (sf.sqrt(fh**2 +fv**2))/(E*A))*(fh / gc * (sf.sinh((gc / fh) * (L + C1)) - sf.sinh((gc / fh) * C1)))
         lc_cat = fh / gc * (sf.sinh((gc / fh) * (L + C1)) - sf.sinh((gc / fh) * C1))
         cat_vars.lc_cat.append(lc_cat)
     

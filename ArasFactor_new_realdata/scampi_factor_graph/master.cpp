@@ -2,7 +2,6 @@
 
 int main(int argc, char *argv[])
 {   
-    int lenght_of_simulation_data = 40;
     // create a random engine with a seed
     std::default_random_engine generator(std::random_device{}());
     double pulley_perturbatio_gain = 0.0;
@@ -37,6 +36,7 @@ int main(int argc, char *argv[])
     std::vector<Eigen::Matrix<double, 3, 3>> rot_init_platform_collection;
     std::vector<Eigen::Matrix<double, 3, 3>> delta_rot_platform_collection;
     std::vector<Eigen::Matrix<double, 2, 1>> cable_forces_collection;
+    std::vector<Eigen::Matrix<double, 4, 1>> IK_cable_length_collection;
 
     std::cout << "******** Extracting Dataset ********" << std::endl;
     // Open the CSV file of real dataset and record them in data vector
@@ -64,32 +64,32 @@ int main(int argc, char *argv[])
         p_platform_collection.push_back(Eigen::Vector3d(real_data_position[i][0], real_data_position[i][1], real_data_position[i][2]));
     }
     
-    std::ifstream file_delta_orientation("./dataset/delta_R_i_cpp_test.csv");    
-    std::vector<std::vector<double>> real_delta_orientation;
-    if (file_delta_orientation) {
-        std::string line;
-        while (getline(file_delta_orientation, line)) {
-            std::stringstream ss(line);
-            std::vector<double> row;
-            std::string val;
-            while (getline(ss, val, ',')) {
-                row.push_back(stod(val));
-            }
-            real_delta_orientation.push_back(row);
-        }
-    std::cout << "Number of delta orientation: " << real_delta_orientation.size() << std::endl;
-    } else {
-        std::cout << "Unable to open file." << std::endl;
-    }
-    // Rewrite the delta in it's object
-    for (size_t i = 0; i < real_delta_orientation.size(); i++)
-    {   
-        Eigen::Matrix<double, 3, 3> ith_delta_rot_init;
-        ith_delta_rot_init <<   real_delta_orientation[i][0], real_delta_orientation[i][1], real_delta_orientation[i][2],
-                                real_delta_orientation[i][3], real_delta_orientation[i][4], real_delta_orientation[i][5],
-                                real_delta_orientation[i][6], real_delta_orientation[i][7], real_delta_orientation[i][8];
-        delta_rot_platform_collection.push_back(ith_delta_rot_init);
-    }
+    // std::ifstream file_delta_orientation("./dataset/delta_R_i_cpp_test.csv");    
+    // std::vector<std::vector<double>> real_delta_orientation;
+    // if (file_delta_orientation) {
+    //     std::string line;
+    //     while (getline(file_delta_orientation, line)) {
+    //         std::stringstream ss(line);
+    //         std::vector<double> row;
+    //         std::string val;
+    //         while (getline(ss, val, ',')) {
+    //             row.push_back(stod(val));
+    //         }
+    //         real_delta_orientation.push_back(row);
+    //     }
+    // std::cout << "Number of delta orientation: " << real_delta_orientation.size() << std::endl;
+    // } else {
+    //     std::cout << "Unable to open file." << std::endl;
+    // }
+    // // Rewrite the delta in it's object
+    // for (size_t i = 0; i < real_delta_orientation.size(); i++)
+    // {   
+    //     Eigen::Matrix<double, 3, 3> ith_delta_rot_init;
+    //     ith_delta_rot_init <<   real_delta_orientation[i][0], real_delta_orientation[i][1], real_delta_orientation[i][2],
+    //                             real_delta_orientation[i][3], real_delta_orientation[i][4], real_delta_orientation[i][5],
+    //                             real_delta_orientation[i][6], real_delta_orientation[i][7], real_delta_orientation[i][8];
+    //     delta_rot_platform_collection.push_back(ith_delta_rot_init);
+    // }
    
     std::ifstream file_orientation("./dataset/R_i_cpp_test.csv");
     std::vector<std::vector<double>> real_orientation;
@@ -144,54 +144,54 @@ int main(int argc, char *argv[])
                                                           real_data_lcat[i][2], real_data_lcat[i][3]));
     }
 
-    std::ifstream file_forces("./dataset/forces_cpp_test.csv");
-    std::vector<std::vector<double>> real_data_forces;
-    if (file_forces) {
-        std::string line;
-        while (getline(file_forces, line)) {
-            std::stringstream ss(line);
-            std::vector<double> row;
-            std::string val;
-            while (getline(ss, val, ',')) {
-                row.push_back(stod(val));
-            }
-            real_data_forces.push_back(row);
-        }
-    std::cout << "Number of force sensor data: " << real_data_forces.size() << std::endl;
-    } else {
-        std::cout << "Unable to open file." << std::endl;
-    }
-    // Rewrite the data in it's object
-    for (size_t i = 0; i < real_data_forces.size(); i++)
-    {   
-        cable_forces_collection.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]));
-    }
-
-    // for (size_t i = 0; i < p_platform_collection.size(); i++)
-    // {
-    //     // start inverse optimization
-    //     std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init_platform_collection[i], p_platform_collection[i]);
-    //     // std::cout << std::endl << "rot_platform: " << std::endl << IKresults[0] << std::endl;
-    //     // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
-    //     // std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
-    //     // std::cout << std::endl << "c1: " << std::endl << IKresults[3] << std::endl;
-    //     // std::cout << std::endl << "c2: " << std::endl << IKresults[4] << std::endl;
-    //     // std::cout << std::endl << "b_in_w: " << std::endl << IKresults[5] << std::endl;
-    //     // std::cout << std::endl << "sagging_1: " << std::endl << IKresults[1].col(0)[0] - (IKresults[5].col(0) - Pulley_a).norm() << std::endl;
-    //     // std::cout << std::endl << "sagging_2: " << std::endl << IKresults[1].col(0)[1] - (IKresults[5].col(1) - Pulley_b).norm() << std::endl;
-    //     // std::cout << std::endl << "sagging_3: " << std::endl << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;
-    //     // std::cout << std::endl << "sagging_4: " << std::endl << IKresults[1].col(0)[3] - (IKresults[5].col(3) - Pulley_d).norm() << std::endl;
-
-    //     delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
-    //     cable_length_collection.push_back(IKresults[1]);
-    //     cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));
+    // std::ifstream file_forces("./dataset/forces_cpp_test.csv");
+    // std::vector<std::vector<double>> real_data_forces;
+    // if (file_forces) {
+    //     std::string line;
+    //     while (getline(file_forces, line)) {
+    //         std::stringstream ss(line);
+    //         std::vector<double> row;
+    //         std::string val;
+    //         while (getline(ss, val, ',')) {
+    //             row.push_back(stod(val));
+    //         }
+    //         real_data_forces.push_back(row);
+    //     }
+    // std::cout << "Number of force sensor data: " << real_data_forces.size() << std::endl;
+    // } else {
+    //     std::cout << "Unable to open file." << std::endl;
+    // }
+    // // Rewrite the data in it's object
+    // for (size_t i = 0; i < real_data_forces.size(); i++)
+    // {   
+    //     cable_forces_collection.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]));
     // }
 
+    for (size_t i = 0; i < p_platform_collection.size(); i++)
+    {
+        // start inverse optimization
+        std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init_platform_collection[i], p_platform_collection[i]);
+        // std::cout << std::endl << "rot_platform: " << std::endl << IKresults[0] << std::endl;
+        // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
+        // std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
+        // std::cout << std::endl << "c1: " << std::endl << IKresults[3] << std::endl;
+        // std::cout << std::endl << "c2: " << std::endl << IKresults[4] << std::endl;
+        // std::cout << std::endl << "b_in_w: " << std::endl << IKresults[5] << std::endl;
+        // std::cout << std::endl << "sagging_1: " << std::endl << IKresults[1].col(0)[0] - (IKresults[5].col(0) - Pulley_a).norm() << std::endl;
+        // std::cout << std::endl << "sagging_2: " << std::endl << IKresults[1].col(0)[1] - (IKresults[5].col(1) - Pulley_b).norm() << std::endl;
+        // std::cout << std::endl << "sagging_3: " << std::endl << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;
+        // std::cout << std::endl << "sagging_4: " << std::endl << IKresults[1].col(0)[3] - (IKresults[5].col(3) - Pulley_d).norm() << std::endl;
+
+        delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
+        IK_cable_length_collection.push_back(IKresults[1]);
+        cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));
+    }
+    
     std::vector<Eigen::Matrix<double, 5, 1>> pulley_perturbation_result;
     std::vector<gtsam::Pose3> Optimized_pose;
     std::vector<gtsam::Pose3> GT_pose;
     // start forward optimization
-    std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, cable_length_collection, cable_forces_collection, p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, pulley_position_estimate, &Optimized_pose, &GT_pose);
+    std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, IK_cable_length_collection, IK_cable_length_collection, cable_forces_collection, p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, pulley_position_estimate, &Optimized_pose, &GT_pose);
 
     std::cout << std::endl << "-----------------Calibration Reults------------------------" << std::endl;
     double error_pulley_estimated_a = (Eigen::Vector3d(pulley_position_estimate.row(0)) - Pulley_a).norm() * 1000;
@@ -206,10 +206,14 @@ int main(int argc, char *argv[])
     double error_pulley_optimized_c = (Eigen::Vector3d(FKresults[0].row(2)) - Pulley_c).norm() * 1000;
     double error_pulley_optimized_d = (Eigen::Vector3d(FKresults[0].row(3)) - Pulley_d).norm() * 1000;
     double sum_pulley_error_optimized = error_pulley_optimized_a + error_pulley_optimized_b + error_pulley_optimized_c + error_pulley_optimized_d;
-    std::cout << std::endl << "A of pulley error  after  calibration  in  mm: " << error_pulley_optimized_a << std::endl;   
-    std::cout << std::endl << "B of pulley error  after  calibration  in  mm: " << error_pulley_optimized_b << std::endl;   
-    std::cout << std::endl << "C of pulley error  after  calibration  in  mm: " << error_pulley_optimized_c << std::endl;   
-    std::cout << std::endl << "D of pulley error  after  calibration  in  mm: " << error_pulley_optimized_d << std::endl;   
+    std::cout << std::endl << "pulley A error  after  calibration  in  mm: " << error_pulley_optimized_a << std::endl;   
+    std::cout << std::endl << "pulley B error  after  calibration  in  mm: " << error_pulley_optimized_b << std::endl;   
+    std::cout << std::endl << "pulley C error  after  calibration  in  mm: " << error_pulley_optimized_c << std::endl;   
+    std::cout << std::endl << "pulley D error  after  calibration  in  mm: " << error_pulley_optimized_d << std::endl;   
+    std::cout << std::endl << "pulley A translation: " << Eigen::Vector3d(FKresults[0].row(0)) - Pulley_a << std::endl;   
+    std::cout << std::endl << "pulley B translation: " << Eigen::Vector3d(FKresults[0].row(1)) - Pulley_b << std::endl;   
+    std::cout << std::endl << "pulley C translation: " << Eigen::Vector3d(FKresults[0].row(2)) - Pulley_c << std::endl;   
+    std::cout << std::endl << "pulley D translation: " << Eigen::Vector3d(FKresults[0].row(3)) - Pulley_d << std::endl;
     std::cout << std::endl << "sum of pulley error  after  calibration  in  mm: " << sum_pulley_error_optimized << std::endl;
 
     std::ofstream file_Optimized_pose_slakc("./result/Optimized_pose_slakc.csv"); // Optimized_pose_slakc      Optimized_pose_localization

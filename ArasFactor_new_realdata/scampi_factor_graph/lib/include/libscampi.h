@@ -30,6 +30,7 @@ void ikSolver(RobotParameters<double> params,
               IKDataOut<double> *result);
 
 void forward_kinematic_factor_graph_optimizer(std::vector<Eigen::Matrix<double, 4, 1>> cable_length_collection,
+                                            std::vector<Eigen::Matrix<double, 4, 1>> IK_cable_length_collection,
                                             std::vector<Eigen::Matrix<double, 2, 1>> cable_forces_collection,
                                             std::vector<Eigen::Matrix<double, 3, 1>> p_platform_collection,
                                             std::vector<Eigen::Matrix<double, 3, 3>> rot_init_platform_collection,

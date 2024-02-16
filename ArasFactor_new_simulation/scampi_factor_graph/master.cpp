@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[])
 {   
-    int lenght_of_simulation_data = 15;
+    int lenght_of_simulation_data = 40;
     std::default_random_engine generator(std::random_device{}());
     std::uniform_real_distribution<double> distribution_x(-0.4, 0.4);
     std::uniform_real_distribution<double> distribution_y(-1.3, 1.3);

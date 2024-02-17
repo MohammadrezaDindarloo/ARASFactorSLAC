@@ -3541,6 +3541,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
     fv1 = sf.Symbol('fv1')
     DeltaRot = sf.Rot3.symbolic("DeltaRot")
     TransformationMatrix = sf.Pose3.symbolic("TransformationMatrix")
+    offset = sf.Vector4.symbolic("offset")
 
     gc = params_.g_c
     init_R = TransformationMatrix.rotation()
@@ -3571,7 +3572,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
         fh = state.cable_forces[i][0]
         residuals[i] = cat_vars.yl_cat[i] - fh/gc * ( sf.cosh(gc/fh * (cat_vars.length[i] + cat_vars.c1[i])) - cat_vars.c2[i] )
         residuals[i+4] = calculate_norm(geom_vars.p_in_w[i]-geom_vars.b_in_w[i]) - lc_cat_measure[i]
-        residuals[i+8] = cat_vars.lc_cat[i] - lc_cat_measure[i]
+        residuals[i+8] = cat_vars.lc_cat[i] + offset[i] - lc_cat_measure[i]
     
     residuals[12:13]=state.static_constrain[0:2]
 
@@ -3817,6 +3818,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                        DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                        TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
                        encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                        epsilon: sf.Scalar = 0
                       ) -> sf.Vector4:
@@ -3829,6 +3831,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                        DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                        TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
                        encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                        epsilon: sf.Scalar = 0
                       ) -> sf.Vector4:
@@ -3841,6 +3844,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                        DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                        TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
                        encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                        epsilon: sf.Scalar = 0
                       ) -> sf.Vector4:
@@ -3854,6 +3858,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                        DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                        TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
                        encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                        epsilon: sf.Scalar = 0
                       ) -> sf.Vector4:
@@ -3866,6 +3871,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                        DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                        TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
                        encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                        epsilon: sf.Scalar = 0
                       ) -> sf.Vector4:
@@ -3878,6 +3884,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                        DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                        TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
                        encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"), 
                        epsilon: sf.Scalar = 0
                       ) -> sf.Vector4:
@@ -3891,6 +3898,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                        DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                        TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
                        encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"), 
                        epsilon: sf.Scalar = 0
                       ) -> sf.Vector4:
@@ -3903,6 +3911,7 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                        DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                        TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
                        encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"), 
                        epsilon: sf.Scalar = 0
                       ) -> sf.Vector4:
@@ -3915,14 +3924,28 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
                        DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                        TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
                        encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"), 
                        epsilon: sf.Scalar = 0
                       ) -> sf.Vector4:
         diff_pd = cost.jacobian(p_d)
         return sf.Matrix43(diff_pd)
-
     resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost3_wrt_pd, config=codegen.CppConfig(),)
     resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+    def FK_residual_func_cost3_wrt_offset(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), 
+                       DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                       TransformationMatrix: sf.Pose3.symbolic("TransformationMatrix"),
+                       encoder: sf.V4.symbolic('encoder'),
+                       offset: sf.V4.symbolic('offset'),
+                       p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"), 
+                       epsilon: sf.Scalar = 0
+                      ) -> sf.Vector4:
+        diff_offset = cost.jacobian(offset)
+        return sf.Matrix44(diff_offset)
+    resedual_func_codegen = codegen.Codegen.function(func=FK_residual_func_cost3_wrt_offset, config=codegen.CppConfig(),)
+    resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
     print("--------------------cost_encoder header files generated FK----------")
     print("************************** FK & IK files **************************")
 

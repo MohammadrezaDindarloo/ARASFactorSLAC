@@ -78,6 +78,7 @@ struct FKDataOut{
     Eigen::Matrix<T, 3, 3> rot_platform;    // the optimized end-effector orientation
     Eigen::Matrix<T, 4, 3> pulley_result;
     double optimizer_error;
+    Eigen::Vector4<T> offset;
 };
 
 

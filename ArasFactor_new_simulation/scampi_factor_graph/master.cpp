@@ -2,15 +2,18 @@
 
 int main(int argc, char *argv[])
 {  
-    std::vector<gtsam::Vector5> calibration_result;
-    int size_of_calib_sample = 50;
+    std::vector<gtsam::Vector10> calibration_result;
+    int size_of_calib_sample = 500;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
-        int lenght_of_simulation_data = 40;
+        int lenght_of_simulation_data = 100;
         std::default_random_engine generator(std::random_device{}());
         std::uniform_real_distribution<double> distribution_x(-0.4, 0.4);
         std::uniform_real_distribution<double> distribution_y(-1.3, 1.3);
-        std::uniform_real_distribution<double> distribution_z(-10.0, 2.0);
+        std::uniform_real_distribution<double> distribution_z(-20.0, 2.0);
+
+        std::uniform_real_distribution<double> distribution_offset(-50.0, 50.0);
+
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
         std::normal_distribution<double> pulley_location_distribution(0.0, 0.5/sqrt(3.0)/3.0);
 
@@ -29,6 +32,8 @@ int main(int argc, char *argv[])
         pulley_position_estimate.row(1) = (Eigen::Vector3d (Pulley_b[0] + pulley_location_distribution(generator), Pulley_b[1] + pulley_location_distribution(generator), Pulley_b[2] + pulley_location_distribution(generator)));
         pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0] + pulley_location_distribution(generator), Pulley_c[1] + pulley_location_distribution(generator), Pulley_c[2] + pulley_location_distribution(generator)));
         pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0] + pulley_location_distribution(generator), Pulley_d[1] + pulley_location_distribution(generator), Pulley_d[2] + pulley_location_distribution(generator)));
+        
+        std::vector<double> cable_offset =  {distribution_offset(generator), distribution_offset(generator), distribution_offset(generator), distribution_offset(generator)};
 
         Eigen::Vector3d Ee_a(-0.21 , -0.21 , -0.011);  
         Eigen::Vector3d Ee_b(0.21  , -0.21 , -0.011);
@@ -203,7 +208,7 @@ int main(int argc, char *argv[])
         std::vector<gtsam::Pose3> Optimized_pose;
         std::vector<gtsam::Pose3> GT_pose;
         // start forward optimization
-        std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, cable_length_collection, cable_forces_collection, p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, pulley_position_estimate, &Optimized_pose, &GT_pose);
+        std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, cable_offset, cable_length_collection, cable_forces_collection, p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, pulley_position_estimate, &Optimized_pose, &GT_pose);
 
         std::cout << std::endl << "-----------------Calibration Reults------------------------" << std::endl;
         double error_pulley_estimated_a = (Eigen::Vector3d(pulley_position_estimate.row(0)) - Pulley_a).norm() * 1000;
@@ -211,40 +216,54 @@ int main(int argc, char *argv[])
         double error_pulley_estimated_c = (Eigen::Vector3d(pulley_position_estimate.row(2)) - Pulley_c).norm() * 1000;
         double error_pulley_estimated_d = (Eigen::Vector3d(pulley_position_estimate.row(3)) - Pulley_d).norm() * 1000;
         double sum_pulley_error_estimated = error_pulley_estimated_a + error_pulley_estimated_b + error_pulley_estimated_c + error_pulley_estimated_d;
-        std::cout << std::endl << "sum of pulley error in initial estimation in mm: " << sum_pulley_error_estimated << std::endl;
+        std::cout << "Pulley initial guess in mm: " << sum_pulley_error_estimated << std::endl;
 
         double error_pulley_optimized_a = (Eigen::Vector3d(FKresults[0].row(0)) - Pulley_a).norm() * 1000;
         double error_pulley_optimized_b = (Eigen::Vector3d(FKresults[0].row(1)) - Pulley_b).norm() * 1000;
         double error_pulley_optimized_c = (Eigen::Vector3d(FKresults[0].row(2)) - Pulley_c).norm() * 1000;
         double error_pulley_optimized_d = (Eigen::Vector3d(FKresults[0].row(3)) - Pulley_d).norm() * 1000;
         double sum_pulley_error_optimized = error_pulley_optimized_a + error_pulley_optimized_b + error_pulley_optimized_c + error_pulley_optimized_d;
-        std::cout << std::endl << "A of pulley error  after  calibration  in  mm: " << error_pulley_optimized_a << std::endl;   
-        std::cout << std::endl << "B of pulley error  after  calibration  in  mm: " << error_pulley_optimized_b << std::endl;   
-        std::cout << std::endl << "C of pulley error  after  calibration  in  mm: " << error_pulley_optimized_c << std::endl;   
-        std::cout << std::endl << "D of pulley error  after  calibration  in  mm: " << error_pulley_optimized_d << std::endl;   
-        std::cout << std::endl << "sum of pulley error  after  calibration  in  mm: " << sum_pulley_error_optimized << std::endl;
+        std::cout << "Pulley A calibration in  mm: " << error_pulley_optimized_a << std::endl;   
+        std::cout << "Pulley B calibration in  mm: " << error_pulley_optimized_b << std::endl;   
+        std::cout << "Pulley C calibration in  mm: " << error_pulley_optimized_c << std::endl;   
+        std::cout << "Pulley D calibration in  mm: " << error_pulley_optimized_d << std::endl;   
+        std::cout << "sum of pulley error  after  calibration  in  mm: " << sum_pulley_error_optimized << std::endl;
 
-        calibration_result.push_back({error_pulley_optimized_a, error_pulley_optimized_b, error_pulley_optimized_c, error_pulley_optimized_d, sum_pulley_error_optimized});
+        double error_offset_a = std::abs(double(FKresults[1](0)) - cable_offset[0]) * 1000;
+        double error_offset_b = std::abs(double(FKresults[1](1)) - cable_offset[1]) * 1000;
+        double error_offset_c = std::abs(double(FKresults[1](2)) - cable_offset[2]) * 1000;
+        double error_offset_d = std::abs(double(FKresults[1](3)) - cable_offset[3]) * 1000;
+        double sum_offset_error_optimized = error_offset_a + error_offset_b + error_offset_c + error_offset_d;
+        std::cout << "Offset A calibration in  mm: " << error_offset_a << std::endl;   
+        std::cout << "Offset B calibration in  mm: " << error_offset_b << std::endl;   
+        std::cout << "Offset C calibration in  mm: " << error_offset_c << std::endl;   
+        std::cout << "Offset D calibration in  mm: " << error_offset_d << std::endl;   
+        std::cout << "sum of offset error  after  calibration  in  mm: " << sum_offset_error_optimized << std::endl;
+        std::cout << "Interval: " << interval << std::endl;
+        std::cout << "-----------------Calibration Reults------------------------" << std::endl << std::endl;
 
-        // std::ofstream file_Optimized_pose_slakc("./result/Optimized_pose_slakc.csv"); // Optimized_pose_slakc      Optimized_pose_localization
-        // for (const auto& calib : Optimized_pose) // Loop through the vector elements
-        // {
-        //     file_Optimized_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line
-        // }
-        // file_Optimized_pose_slakc.close(); // Close the file stream 
+        calibration_result.push_back({error_pulley_optimized_a, error_pulley_optimized_b, error_pulley_optimized_c, error_pulley_optimized_d, sum_pulley_error_optimized,
+                                      error_offset_a, error_offset_b, error_offset_c, error_offset_d, sum_offset_error_optimized});
 
-        // std::ofstream file_GT_pose_slakc("./result/GT_pose_slakc.csv"); // GT_pose_slakc     GT_pose_localization
-        // for (const auto& calib : GT_pose) // Loop through the vector elements
-        // {
-        //     file_GT_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line
-        // }
-        // file_GT_pose_slakc.close(); // Close the file stream 
+        std::ofstream file_Optimized_pose_slakc("./result/Optimized_pose_slakc.csv"); // Optimized_pose_slakc      Optimized_pose_localization
+        for (const auto& calib : Optimized_pose) // Loop through the vector elements
+        {
+            file_Optimized_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line
+        }
+        file_Optimized_pose_slakc.close(); // Close the file stream 
+
+        std::ofstream file_GT_pose_slakc("./result/GT_pose_slakc.csv"); // GT_pose_slakc     GT_pose_localization
+        for (const auto& calib : GT_pose) // Loop through the vector elements
+        {
+            file_GT_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line
+        }
+        file_GT_pose_slakc.close(); // Close the file stream 
 
     }
     std::ofstream file("./result/calibration_result.csv"); // Create a file stream object
     for (const auto& calib : calibration_result) // Loop through the vector elements
     {
-        file << calib[0] << "," << calib[1] << "," << calib[2] << "," << calib[3] << "," << calib[4] << std::endl; // Write each element, separated by commas, and end the line
+        file << calib[0] << "," << calib[1] << "," << calib[2] << "," << calib[3] << "," << calib[4] << "," << calib[5] << "," << calib[6] << "," << calib[7] << "," << calib[8] << "," << calib[9] << std::endl; // Write each element, separated by commas, and end the line
     }
     file.close(); // Close the file stream
     return 0;

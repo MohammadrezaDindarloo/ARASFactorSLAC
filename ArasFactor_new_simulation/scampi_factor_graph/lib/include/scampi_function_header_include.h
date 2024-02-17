@@ -31,6 +31,8 @@
 #include "model_include/FK_residual_func_cost3_wrt_pb.h"
 #include "model_include/FK_residual_func_cost3_wrt_pc.h"
 #include "model_include/FK_residual_func_cost3_wrt_pd.h"
+#include "model_include/FK_residual_func_cost3_wrt_offset.h"
+
 
 
 // ************************************ IK ************************************

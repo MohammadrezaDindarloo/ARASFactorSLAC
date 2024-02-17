@@ -181,11 +181,11 @@ int main(int argc, char *argv[])
         // {   
         //     cable_forces_collection.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]));
         // }
-        
+
+         // start inverse optimization for data generation
         for (size_t i = 0; i < lenght_of_simulation_data; i++)
         {
             p_platform_collection.push_back(Eigen::Vector3d((0.35) + distribution_x(generator), (-1.8) + distribution_y(generator),  (2.0) + distribution_z(generator)));
-            // start inverse optimization
             std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init, p_platform_collection[i]);
             // std::cout << std::endl << "rot_platform: " << std::endl << IKresults[0] << std::endl;
             // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;

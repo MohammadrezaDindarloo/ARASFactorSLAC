@@ -3,10 +3,10 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 500;
+    int size_of_calib_sample = 1;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
-        int lenght_of_simulation_data = 100;
+        int lenght_of_simulation_data = 20;
         std::default_random_engine generator(std::random_device{}());
         std::uniform_real_distribution<double> distribution_x(-0.4, 0.4);
         std::uniform_real_distribution<double> distribution_y(-1.3, 1.3);
@@ -44,9 +44,16 @@ int main(int argc, char *argv[])
         Eigen::Vector3d r_to_cog(0, 0, -0.12);
         robot_params.setCog(r_to_cog);
 
+        // gtsam::Rot3 rot_init_;
+        // double pitch = 3.02097 * M_PI/180.0;
+        // double roll = 5.59355 * M_PI/180.0;
+        // double yaw = -1.86476 * M_PI/180.0;
+        // rot_init_ = rot_init_.RzRyRx(yaw, roll, pitch);
+        // Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);
+        // std::cout << "rot_init" << rot_init_ << std::endl;
         Eigen::Matrix3d rot_init;
         rot_init << 0.99268615,  0.11337417, -0.04147891,
-                    -0.11309773,  0.99354347,  0.00895918,
+                    -0.11309773,  0.99354347,  0.00895918, 
                     0.04222684, -0.00420248,  0.99909921; 
 
         std::vector<Eigen::Matrix<double, 4, 1>> cable_length_collection;
@@ -57,7 +64,7 @@ int main(int argc, char *argv[])
 
         // std::cout << "******** Extracting Dataset ********" << std::endl;
         // // Open the CSV file of real dataset and record them in data vector
-        // std::ifstream file_position("./dataset/pos_i_cpp_test.csv");
+        // std::ifstream file_position("./dataset/pos_i_cpp_test.csv"); 
         // std::vector<std::vector<double>> real_data_position;
         // if (file_position) {
         //     std::string line;
@@ -170,7 +177,7 @@ int main(int argc, char *argv[])
         //         while (getline(ss, val, ',')) {
         //             row.push_back(stod(val));
         //         }
-        //         real_data_forces.push_back(row);
+        //         real_data_forces.push_back(row);IKresults
         //     }
         // std::cout << "Number of force sensor data: " << real_data_forces.size() << std::endl;
         // } else {
@@ -184,15 +191,20 @@ int main(int argc, char *argv[])
 
          // start inverse optimization for data generation
         for (size_t i = 0; i < lenght_of_simulation_data; i++)
-        {
+        {   
             p_platform_collection.push_back(Eigen::Vector3d((0.35) + distribution_x(generator), (-1.8) + distribution_y(generator),  (2.0) + distribution_z(generator)));
+            // p_platform_collection.push_back(Eigen::Vector3d(307.966 / 1000.0, -1309.69 / 1000.0, -16498.1 / 1000.0));
             std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init, p_platform_collection[i]);
-            // std::cout << std::endl << "rot_platform: " << std::endl << IKresults[0] << std::endl;
-            // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
-            // std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
+            gtsam::Rot3 rot_platform = EigenMatrixToGtsamRot3(IKresults[0]);    
+            std::cout << std::endl << "rot_platform pitch: " << std::endl << rot_platform.pitch() * 180.0/M_PI << std::endl;
+            std::cout << std::endl << "rot_platform roll: " << std::endl << rot_platform.roll() * 180.0/M_PI << std::endl;
+            std::cout << std::endl << "rot_platform yaw: " << std::endl << rot_platform.yaw() * 180.0/M_PI << std::endl;
+            std::cout << std::endl << "p_platform: " << std::endl << p_platform_collection[i] << std::endl;
+            std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
+            std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
             // std::cout << std::endl << "c1: " << std::endl << IKresults[3] << std::endl;
             // std::cout << std::endl << "c2: " << std::endl << IKresults[4] << std::endl;
-            // std::cout << std::endl << "b_in_w: " << std::endl << IKresults[5] << std::endl;
+            std::cout << std::endl << "b_in_w: " << std::endl << IKresults[5] << std::endl;
             // std::cout << std::endl << "sagging_1: " << std::endl << IKresults[1].col(0)[0] - (IKresults[5].col(0) - Pulley_a).norm() << std::endl;
             // std::cout << std::endl << "sagging_2: " << std::endl << IKresults[1].col(0)[1] - (IKresults[5].col(1) - Pulley_b).norm() << std::endl;
             // std::cout << std::endl << "sagging_3: " << std::endl << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;

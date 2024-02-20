@@ -157,7 +157,7 @@ void ikSolver(RobotParameters<double> params,
     // initial values for variable 
     double init_estimate_h1 = fh0;
     double init_estimate_v1 = -fv0;
-    gtsam::Rot3 init_estimate_rot = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+    gtsam::Rot3 init_estimate_rot = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
     // run optimization!
     gtsam::Values optimization_result;
     inverse_kinematic_factor_graph_optimizer(p_platform, rot_init, largest_cable,
@@ -209,7 +209,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     std::default_random_engine generator(std::random_device{}());
 
     // noise hander
-    double all_noise_activation = 1.0;
+    double all_noise_activation = 0.0;
 
     // Encoder noise model
     double encoder_noise_gain = 1.0;

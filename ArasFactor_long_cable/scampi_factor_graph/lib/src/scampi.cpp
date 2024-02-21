@@ -11,7 +11,7 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     double sigma_inv = 15.0;
     auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, sigma_inv); // 15.0 ++
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, sigma_inv); // 15.0 ++
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 6.0); // 0.6 ++
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 6.0 ++
 
     graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost1));
     graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost2));
@@ -243,12 +243,12 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     double translationnoise_prior = 0.001/sqrt(3.0)/3.0; //in meter 
     double orientationnoise_prior = (0.1/sqrt(3.0) * M_PI / 180.0)/3.0; // in degree and convert to radian
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
-    auto prior_noiseModel_offset = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<1e-2, 1e-2, 1e-2, 1e-2).finished());
+    auto prior_noiseModel_offset = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<1e-4, 1e-4, 1e-4, 1e-4).finished());
 
     // Cost noise models
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.5); // z         
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 15.0); // z         
     // auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.050/3.0); // UWB       
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.01); // encoder   
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.001); // encoder   
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;

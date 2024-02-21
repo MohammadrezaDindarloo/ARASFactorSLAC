@@ -6,16 +6,16 @@ int main(int argc, char *argv[])
     int size_of_calib_sample = 1;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
-        int lenght_of_simulation_data = 100;
+        int lenght_of_simulation_data = 50;
         std::default_random_engine generator(std::random_device{}());
-        std::uniform_real_distribution<double> distribution_x(-40.0, 40.0);
-        std::uniform_real_distribution<double> distribution_y(-40.0, 40.0);
-        std::uniform_real_distribution<double> distribution_z(-15.0, 15.0);
+        std::uniform_real_distribution<double> distribution_x(-30.0, 30.0);
+        std::uniform_real_distribution<double> distribution_y(-30.0, 30.0);
+        std::uniform_real_distribution<double> distribution_z(-10.0, 5.0);
 
         std::uniform_real_distribution<double> distribution_offset(-0.0, 0.0);
 
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
-        std::normal_distribution<double> pulley_location_distribution(0.0, 1.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0,0.0* 5.0/sqrt(3.0)/3.0);
 
         // robot characteristic
         CableRobotParams robot_params(0.1034955, 19.62);
@@ -191,9 +191,9 @@ int main(int argc, char *argv[])
         // start inverse optimization for data generation
         for (size_t i = 0; i < lenght_of_simulation_data; i++)
         {   
-            p_platform_collection.push_back(Eigen::Vector3d((0.0) + distribution_x(generator), (0.0) + distribution_y(generator), (20.0) + distribution_z(generator)));
+            auto p_platform = Eigen::Vector3d((0.0) + distribution_x(generator), (0.0) + distribution_y(generator), (20.0) + distribution_z(generator));
             // p_platform_collection.push_back(Eigen::Vector3d(0.0, 0.0, 23.0));
-            std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init, p_platform_collection[i]);
+            std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init, p_platform);
             // std::cout << std::endl << "rot_platform: " << std::endl << IKresults[0] << std::endl;
             // std::cout << std::endl << "p_platform: " << std::endl << p_platform_collection[i] << std::endl;
             // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
@@ -201,15 +201,28 @@ int main(int argc, char *argv[])
             // std::cout << std::endl << "c1: " << std::endl << IKresults[3] << std::endl;
             // std::cout << std::endl << "c2: " << std::endl << IKresults[4] << std::endl;
             // std::cout << std::endl << "b_in_w: " << std::endl << IKresults[5] << std::endl;
+
             // std::cout << std::endl << "sagging_1: " << std::endl << IKresults[1].col(0)[0] - (IKresults[5].col(0) - Pulley_a).norm() << std::endl;
             // std::cout << std::endl << "sagging_2: " << std::endl << IKresults[1].col(0)[1] - (IKresults[5].col(1) - Pulley_b).norm() << std::endl;
             // std::cout << std::endl << "sagging_3: " << std::endl << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;
             // std::cout << std::endl << "sagging_4: " << std::endl << IKresults[1].col(0)[3] - (IKresults[5].col(3) - Pulley_d).norm() << std::endl;
-
-            rot_init_platform_collection.push_back(rot_init);
-            delta_rot_platform_collection.push_back(rot_init.inverse() * IKresults[0]);
-            cable_length_collection.push_back(IKresults[1]);
-            cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));
+            
+            int force_positive = 0;        
+            for(size_t i = 0; i < 4; i++)
+            {
+                if (IKresults[2].col(i)[0]>0 && IKresults[2].col(i)[1]>0)
+                {
+                    force_positive +=1;
+                }
+            }
+            if (force_positive == 4)
+            {
+                p_platform_collection.push_back(p_platform);
+                rot_init_platform_collection.push_back(rot_init);
+                delta_rot_platform_collection.push_back(rot_init.inverse() * IKresults[0]);
+                cable_length_collection.push_back(IKresults[1]);
+                cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));            
+            }
         }
 
         std::vector<Eigen::Matrix<double, 5, 1>> pulley_perturbation_result;

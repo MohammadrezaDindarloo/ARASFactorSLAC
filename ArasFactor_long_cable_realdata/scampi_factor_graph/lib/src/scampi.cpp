@@ -8,13 +8,16 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
 {
     NonlinearFactorGraph graph;
     Values initial_estimate;
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.105/3.0); // 15.0 ++
-    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 15.0 ++
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 6.0 ++
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.085/3.0); // 0.105/3.0
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.09/3.0); // 1.0/3.0
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 1.0/3.0
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<1.0e-1 * M_PI/180, 1.0e-1 * M_PI/180, 1.0e-1 * M_PI/180).finished());
 
     graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost1));
     graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost2));
     graph.add(std::make_shared<IK_factor_graoh_cost3>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost3));
+    
+    graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', 1), init_estimate_rot, prior_noiseModel_delta_rot);
 
     initial_estimate.insert(Symbol('h', 1), init_estimate_h1);
     initial_estimate.insert(Symbol('v', 1), init_estimate_v1);
@@ -26,7 +29,7 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     Values result_LM = optimizer.optimize();
 
     std::cout << "inverse kinematic optimization error: " << optimizer.error() << std::endl;
-    if (optimizer.error() > 1e2)
+    if (optimizer.error() > 1e3)
     {
         std::cout << "!!!!!!!!!!!!!! inverse kinematic error is too high !!!!!!!!!!!!!!" << std::endl;
     }
@@ -204,12 +207,11 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
 {
     NonlinearFactorGraph graph;
     Values initial_estimate;
-    bool prior_factory, odometry_factory;
-    auto sensor_mode = prior_factory;
+    auto sensor_mode_prior_factory = true;
     std::default_random_engine generator(std::random_device{}());
 
     // noise hander
-    double all_noise_activation = 1.0;
+    double all_noise_activation = 0.0;
 
     // Encoder noise model
     double encoder_noise_gain = 1.0;
@@ -244,17 +246,18 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
     auto prior_noiseModel_offset = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<1e-4, 1e-4, 1e-4, 1e-4).finished());
     auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<1e-4, 1e-4, 1e-4).finished());
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<1.0e-1 * M_PI/180, 1.0e-1 * M_PI/180, 1.0e-1 * M_PI/180).finished());
 
     // Cost noise models
     // auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<15.0, 15.0, 15.0, 15.0).finished());
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.025/3.0); // z      0.02   
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.025/3.0); // z      0.025/3.0 
     // auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.050/3.0); // UWB       
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.008/3.0); // encoder   0.006
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.1/3.0); // encoder   0.008/3.0
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;
     graph.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(Symbol('X', 0), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[0]), p_platform_collection[0]), prior_noiseModel_init_pose);
-    for (size_t i = 0; i < p_platform_collection.size()-1; i++)
+    for (size_t i = 0; i < p_platform_collection.size(); i++)
     {
         double uwb_data_1 = (b_in_w_collection[i][0] - p_in_w_collection[i][0]).norm() + uwb_noise(generator);
         double uwb_data_2 = (b_in_w_collection[i][1] - p_in_w_collection[i][1]).norm() + uwb_noise(generator);
@@ -272,7 +275,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
         // graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), uwb_data, Sensor_noiseModel_cost2));
         graph.add(std::make_shared<FK_factor_graoh_cost3>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), Symbol('o', 0), enc_data, Sensor_noiseModel_cost3));
 
-        if (sensor_mode == prior_factory)
+        if (sensor_mode_prior_factory)
         {
             // ******** prior factor ********
             gtsam::Pose3 pose_k;
@@ -321,6 +324,9 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
                 initial_estimate.insert(Symbol('X', p_platform_collection.size()-1), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[p_platform_collection.size()-1]), p_platform_collection[p_platform_collection.size()-1]));
             }
         }
+
+        graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i]), prior_noiseModel_delta_rot);
+
         initial_estimate.insert(Symbol('h', i), cable_forces_collection[i][0]);
         initial_estimate.insert(Symbol('v', i), cable_forces_collection[i][1]);
         initial_estimate.insert(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i])); 

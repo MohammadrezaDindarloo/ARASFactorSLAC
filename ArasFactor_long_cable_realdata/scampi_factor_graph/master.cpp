@@ -3,10 +3,9 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 200;
+    int size_of_calib_sample = 1;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
-        int lenght_of_simulation_data = 50;
         std::default_random_engine generator(std::random_device{}());
         std::uniform_real_distribution<double> distribution_x(-10.0, 10.0);
         std::uniform_real_distribution<double> distribution_y(-10.0, 10.0);
@@ -15,7 +14,7 @@ int main(int argc, char *argv[])
         std::uniform_real_distribution<double> distribution_offset(-0.0, 0.0);
 
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
-        std::normal_distribution<double> pulley_location_distribution(0.0, 5.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 2.0/sqrt(3.0)/3.0);
 
         // robot characteristic
         CableRobotParams robot_params(0.7100703113867337, 333.54);
@@ -33,11 +32,6 @@ int main(int argc, char *argv[])
         pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0] + pulley_location_distribution(generator), Pulley_c[1] + pulley_location_distribution(generator), Pulley_c[2] + pulley_location_distribution(generator)));
         pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0] + pulley_location_distribution(generator), Pulley_d[1] + pulley_location_distribution(generator), Pulley_d[2] + pulley_location_distribution(generator)));
         
-        // pulley_position_estimate.row(0) = (Eigen::Vector3d (Pulley_a[0] + pulley_location_distribution(generator), Pulley_a[1] + pulley_location_distribution(generator), Pulley_a[2] + pulley_location_distribution(generator)));
-        // pulley_position_estimate.row(1) = (Eigen::Vector3d (Pulley_b[0] + 0.0, Pulley_b[1] + 0.0, Pulley_b[2] + 0.0));
-        // pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0] + 0.0, Pulley_c[1] + 0.0, Pulley_c[2] + 0.0));
-        // pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0] + 0.0, Pulley_d[1] + 0.0, Pulley_d[2] + 0.0));
-        
         std::vector<double> cable_offset =  {distribution_offset(generator), distribution_offset(generator), distribution_offset(generator), distribution_offset(generator)};
 
         Eigen::Vector3d Ee_a(-0.21 , -0.21 , -0.011);  
@@ -49,51 +43,37 @@ int main(int argc, char *argv[])
         Eigen::Vector3d r_to_cog(0, 0, -0.12);
         robot_params.setCog(r_to_cog);
 
-        gtsam::Rot3 rot_init_;
-        double pitch = 0.01 * M_PI/180.0;
-        double roll = 0.01 * M_PI/180.0;
-        double yaw = 0.01 * M_PI/180.0;
-        // double pitch = -1.31 * M_PI/180.0;
-        // double roll = 0.68 * M_PI/180.0;
-        // double yaw = -0.04 * M_PI/180.0;
-        rot_init_ = rot_init_.RzRyRx(yaw, roll, pitch);
-        Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);
-        // Eigen::Matrix3d rot_init;
-        // rot_init << 0.99268615,  0.11337417, -0.04147891,
-        //             -0.11309773,  0.99354347,  0.00895918, 
-        //             0.04222684, -0.00420248,  0.99909921; 
-
         std::vector<Eigen::Matrix<double, 4, 1>> cable_length_collection;
         std::vector<Eigen::Matrix<double, 3, 1>> p_platform_collection;
         std::vector<Eigen::Matrix<double, 3, 3>> rot_init_platform_collection;
         std::vector<Eigen::Matrix<double, 3, 3>> delta_rot_platform_collection;
         std::vector<Eigen::Matrix<double, 2, 1>> cable_forces_collection;
 
-        // std::cout << "******** Extracting Dataset ********" << std::endl;
-        // // Open the CSV file of real dataset and record them in data vector
-        // std::ifstream file_position("./dataset/pos_i_cpp_test.csv"); 
-        // std::vector<std::vector<double>> real_data_position;
-        // if (file_position) {
-        //     std::string line;
-        //     while (getline(file_position, line)) {
-        //         std::stringstream ss(line);
-        //         std::vector<double> row;
-        //         std::string val;
-        //         while (getline(ss, val, ',')) {
-        //             row.push_back(stod(val));
-        //         }
-        //         real_data_position.push_back(row);
-        //     }
-        // std::cout << "Number of position data: " << real_data_position.size() << std::endl;
-        // } else {
-        //     std::cout << "Unable to open file." << std::endl;
-        // }
-        // double lenght_dataset_for_calibration = real_data_position.size();
-        // // Rewrite the data in it's object
-        // for (size_t i = 0; i < real_data_position.size(); i++)
-        // {
-        //     p_platform_collection.push_back(Eigen::Vector3d(real_data_position[i][0], real_data_position[i][1], real_data_position[i][2]));
-        // }
+        std::cout << "******** Extracting Dataset ********" << std::endl;
+        // Open the CSV file of real dataset and record them in data vector
+        std::ifstream file_position("./dataset/pos_i_cpp_test.csv"); 
+        std::vector<std::vector<double>> real_data_position;
+        if (file_position) {
+            std::string line;
+            while (getline(file_position, line)) {
+                std::stringstream ss(line);
+                std::vector<double> row;
+                std::string val;
+                while (getline(ss, val, ',')) {
+                    row.push_back(stod(val));
+                }
+                real_data_position.push_back(row);
+            }
+        std::cout << "Number of position data: " << real_data_position.size() << std::endl;
+        } else {
+            std::cout << "Unable to open file." << std::endl;
+        }
+        double lenght_dataset_for_calibration = real_data_position.size();
+        // Rewrite the data in it's object
+        for (size_t i = 0; i < real_data_position.size(); i++)
+        {
+            p_platform_collection.push_back(Eigen::Vector3d(real_data_position[i][0], real_data_position[i][1], real_data_position[i][2]));
+        }
         
         // std::ifstream file_delta_orientation("./dataset/delta_R_i_cpp_test.csv");    
         // std::vector<std::vector<double>> real_delta_orientation;
@@ -121,7 +101,8 @@ int main(int argc, char *argv[])
         //                             real_delta_orientation[i][6], real_delta_orientation[i][7], real_delta_orientation[i][8];
         //     delta_rot_platform_collection.push_back(ith_delta_rot_init);
         // }
-    
+
+        // // This is used for matrix orientation extraction 
         // std::ifstream file_orientation("./dataset/R_i_cpp_test.csv");
         // std::vector<std::vector<double>> real_orientation;
         // if (file_orientation) {
@@ -149,29 +130,43 @@ int main(int argc, char *argv[])
         //     rot_init_platform_collection.push_back(ith_rot_init);
         // }
 
-        // std::ifstream file_lcat("./dataset/lc_meas_cpp_test.csv");
-        // std::vector<std::vector<double>> real_data_lcat;
-        // if (file_lcat) {
-        //     std::string line;
-        //     while (getline(file_lcat, line)) {
-        //         std::stringstream ss(line);
-        //         std::vector<double> row;
-        //         std::string val;
-        //         while (getline(ss, val, ',')) {
-        //             row.push_back(stod(val));
-        //         }
-        //         real_data_lcat.push_back(row);
-        //     }
-        // std::cout << "Number of encoder data: " << real_data_lcat.size() << std::endl;
-        // } else {
-        //     std::cout << "Unable to open file." << std::endl;
-        // }
-        // // Rewrite the data in it's object
-        // for (size_t i = 0; i < real_data_lcat.size(); i++)
-        // {   
-        //     cable_length_collection.push_back(Eigen::Vector4d(real_data_lcat[i][0], real_data_lcat[i][1],
-        //                                                     real_data_lcat[i][2], real_data_lcat[i][3]));
-        // }
+
+        // ******************************
+        // // This is used for euler orientation extraction 
+        std::ifstream file_orientation("./dataset/R_i_cpp_test.csv");
+        std::vector<std::vector<double>> real_orientation;
+        if (file_orientation) {
+            std::string line;
+            while (getline(file_orientation, line)) {
+                std::stringstream ss(line);
+                std::vector<double> row;
+                std::string val;
+                while (getline(ss, val, ',')) {
+                    row.push_back(stod(val));
+                }
+                real_orientation.push_back(row);
+            }
+        std::cout << "Number of orientation data: " << real_orientation.size() << std::endl;
+        } else {
+            std::cout << "Unable to open file." << std::endl;
+        }
+        // Rewrite the data in it's object
+        for (size_t i = 0; i < real_orientation.size(); i++)
+        {   
+            gtsam::Rot3 rot_init_;
+            double pitch = real_orientation[i][0] * M_PI/180.0;
+            double roll = real_orientation[i][1] * M_PI/180.0;
+            double yaw = real_orientation[i][2] * M_PI/180.0;
+            rot_init_ = rot_init_.Ypr(yaw, pitch, roll);
+            Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);
+            rot_init_platform_collection.push_back(rot_init);
+            gtsam::Rot3 delta_rot_;
+            double pitch_deltaRot = 0.0001 * M_PI/180.0;
+            double roll_deltaRot = 0.0001 * M_PI/180.0;
+            double yaw_deltaRot = 0.0001 * M_PI/180.0;
+            Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot)));
+            delta_rot_platform_collection.push_back(deltaRot);
+        }
 
         // std::ifstream file_forces("./dataset/forces_cpp_test.csv");
         // std::vector<std::vector<double>> real_data_forces;
@@ -184,7 +179,7 @@ int main(int argc, char *argv[])
         //         while (getline(ss, val, ',')) {
         //             row.push_back(stod(val));
         //         }
-        //         real_data_forces.push_back(row);IKresults
+        //         real_data_forces.push_back(row);
         //     }
         // std::cout << "Number of force sensor data: " << real_data_forces.size() << std::endl;
         // } else {
@@ -196,17 +191,46 @@ int main(int argc, char *argv[])
         //     cable_forces_collection.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]));
         // }
 
+        std::ifstream file_lcat("./dataset/lc_meas_cpp_test.csv");
+        std::vector<std::vector<double>> real_data_lcat;
+        if (file_lcat) {
+            std::string line;
+            while (getline(file_lcat, line)) {
+                std::stringstream ss(line);
+                std::vector<double> row;
+                std::string val;
+                while (getline(ss, val, ',')) {
+                    row.push_back(stod(val));
+                }
+                real_data_lcat.push_back(row);
+            }
+        std::cout << "Number of encoder data: " << real_data_lcat.size() << std::endl;
+        } else {
+            std::cout << "Unable to open file." << std::endl;
+        }
+        // Rewrite the data in it's object
+        for (size_t i = 0; i < real_data_lcat.size(); i++)
+        {   
+            cable_length_collection.push_back(Eigen::Vector4d(real_data_lcat[i][0], real_data_lcat[i][1],
+                                                            real_data_lcat[i][2], real_data_lcat[i][3]));
+        }
+
         // start inverse optimization for data generation
-        for (size_t i = 0; i < lenght_of_simulation_data; i++)
-        {                       
-            auto p_platform = Eigen::Vector3d((0.0) + distribution_x(generator), (0.0) + distribution_y(generator), (15.0) + distribution_z(generator));
-            // auto p_platform = Eigen::Vector3d(0.0, 0.0, 20.0);
-            std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init, p_platform);
+        for (size_t i = 0; i < p_platform_collection.size(); i++)
+        {     
+            // gtsam::Rot3 rot_init_;
+            // double pitch = 0.01 * M_PI/180.0;
+            // double roll = 0.01 * M_PI/180.0;
+            // double yaw = 0.01 * M_PI/180.0;
+            // rot_init_ = rot_init_.Ypr(yaw, pitch, roll);
+            // Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);                  
+            // auto p_platform = Eigen::Vector3d(-1.0,8.0,20.0);
+            std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init_platform_collection[i], p_platform_collection[i]);
             // std::cout << std::endl << "rot_platform: " << std::endl << IKresults[0] << std::endl;
             // gtsam::Rot3 rotplat = EigenMatrixToGtsamRot3(IKresults[0]);
-            // std::cout << std::endl << "rot_platform roll: " << std::endl << rotplat.roll() << std::endl;
-            // std::cout << std::endl << "rot_platform pitch: " << std::endl << rotplat.pitch() << std::endl;
-            // std::cout << std::endl << "rot_platform yaw: " << std::endl << rotplat.yaw() << std::endl;
+            // std::cout << std::endl << "rot_platform roll: " << std::endl << rotplat.roll() * 180.0/M_PI << std::endl;
+            // std::cout << std::endl << "rot_platform pitch: " << std::endl << rotplat.pitch() * 180.0/M_PI << std::endl;
+            // std::cout << std::endl << "rot_platform yaw: " << std::endl << rotplat.yaw() * 180.0/M_PI << std::endl;
             // std::cout << std::endl << "p_platform: " << std::endl << p_platform << std::endl;
             // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
             // std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
@@ -218,23 +242,10 @@ int main(int argc, char *argv[])
             // std::cout << std::endl << "sagging_2: " << std::endl << IKresults[1].col(0)[1] - (IKresults[5].col(1) - Pulley_b).norm() << std::endl;
             // std::cout << std::endl << "sagging_3: " << std::endl << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;
             // std::cout << std::endl << "sagging_4: " << std::endl << IKresults[1].col(0)[3] - (IKresults[5].col(3) - Pulley_d).norm() << std::endl;
-            
-            int force_positive = 0;        
-            for(size_t i = 0; i < 4; i++)
-            {
-                if (IKresults[2].col(i)[0]>0 && IKresults[2].col(i)[1]>0)
-                {
-                    force_positive +=1;
-                }
-            }
-            if (force_positive == 4)
-            {
-                p_platform_collection.push_back(p_platform);
-                rot_init_platform_collection.push_back(rot_init);
-                delta_rot_platform_collection.push_back(rot_init.inverse() * IKresults[0]);
-                cable_length_collection.push_back(IKresults[1]);
-                cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));            
-            }
+            std::cout << std::endl << "dif_l_cat: " << std::endl << IKresults[1]-cable_length_collection[i] << std::endl;
+
+            // cable_length_collection.push_back(IKresults[1]);
+            cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));            
         }
 
         std::vector<Eigen::Matrix<double, 5, 1>> pulley_perturbation_result;

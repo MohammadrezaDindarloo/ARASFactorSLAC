@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
         std::uniform_real_distribution<double> distribution_offset(-0.0, 0.0);
 
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
-        std::normal_distribution<double> pulley_location_distribution(0.0, 2.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 20.0/sqrt(3.0)/3.0);
 
         // robot characteristic
         CableRobotParams robot_params(0.7100703113867337, 333.54);
@@ -160,12 +160,12 @@ int main(int argc, char *argv[])
             rot_init_ = rot_init_.Ypr(yaw, pitch, roll);
             Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);
             rot_init_platform_collection.push_back(rot_init);
-            gtsam::Rot3 delta_rot_;
-            double pitch_deltaRot = 0.0001 * M_PI/180.0;
-            double roll_deltaRot = 0.0001 * M_PI/180.0;
-            double yaw_deltaRot = 0.0001 * M_PI/180.0;
-            Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot)));
-            delta_rot_platform_collection.push_back(deltaRot);
+            // gtsam::Rot3 delta_rot_;
+            // double pitch_deltaRot = 0.0001 * M_PI/180.0;
+            // double roll_deltaRot = 0.0001 * M_PI/180.0;
+            // double yaw_deltaRot = 0.0001 * M_PI/180.0;
+            // Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot)));
+            // delta_rot_platform_collection.push_back(deltaRot);
         }
 
         // std::ifstream file_forces("./dataset/forces_cpp_test.csv");
@@ -245,7 +245,8 @@ int main(int argc, char *argv[])
             std::cout << std::endl << "dif_l_cat: " << std::endl << IKresults[1]-cable_length_collection[i] << std::endl;
 
             // cable_length_collection.push_back(IKresults[1]);
-            cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));            
+            delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
+            cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));  
         }
 
         std::vector<Eigen::Matrix<double, 5, 1>> pulley_perturbation_result;

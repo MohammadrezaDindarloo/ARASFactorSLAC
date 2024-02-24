@@ -10,10 +10,6 @@
 #include <bits/stdc++.h>
 #include <chrono>
 
-
-
-
-
 void saveData(string fileName, std::vector<MatrixXd> input_mat)
 {
     // Open the CSV file for writing

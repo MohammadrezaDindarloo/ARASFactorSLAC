@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 1;
+    int size_of_calib_sample = 500;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
         bool simulation_mode_use_recordyn_data = false;
@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
         std::uniform_real_distribution<double> distribution_offset(-0.0, 0.0);
 
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
-        std::normal_distribution<double> pulley_location_distribution(0.0, 0.5/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 1.0/sqrt(3.0)/3.0);
 
         // robot characteristic
         CableRobotParams robot_params(0.1034955, 43.164);
@@ -240,6 +240,7 @@ int main(int argc, char *argv[])
                 // std::cout << std::endl << "sagging_2: " << std::endl << IKresults[1].col(0)[1] - (IKresults[5].col(1) - Pulley_b).norm() << std::endl;
                 // std::cout << std::endl << "sagging_3: " << std::endl << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;
                 // std::cout << std::endl << "sagging_4: " << std::endl << IKresults[1].col(0)[3] - (IKresults[5].col(3) - Pulley_d).norm() << std::endl;
+                std::cout << std::endl << "dif_l_cat: " << std::endl << IKresults[1]-cable_length_collection[i] << std::endl;
 
                 // rot_init_platform_collection.push_back(rot_init);
                 // delta_rot_platform_collection.push_back(rot_init.inverse() * IKresults[0]);

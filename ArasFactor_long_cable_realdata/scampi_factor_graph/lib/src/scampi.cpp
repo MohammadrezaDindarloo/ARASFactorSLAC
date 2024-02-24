@@ -8,10 +8,10 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
 {
     NonlinearFactorGraph graph;
     Values initial_estimate;
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.085/3.0); // 0.085
-    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.06/3.0); // 0.085
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.02/3.0); // 0.085/3.0
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.02/3.0); // 0.06/3.0
     auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 1.0/3.0
-    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<2.0e-1 * M_PI/180.0, 2.0e-1 * M_PI/180.0, 2.0e-1 * M_PI/180.0).finished());
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<2.0e-1 * M_PI/180.0, 2.0e-1 * M_PI/180.0, 2.0e-1 * M_PI/180.0).finished()); // 2.0e-1
 
     graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost1));
     graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost2));
@@ -246,13 +246,12 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
     auto prior_noiseModel_offset = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<1e-4, 1e-4, 1e-4, 1e-4).finished());
     auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<1e-4, 1e-4, 1e-4).finished());
-    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<1.0e-2 * M_PI/180.0, 1.0e-2 * M_PI/180.0, 1.0e-2 * M_PI/180.0).finished());
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<1.0e-2 * M_PI/180.0, 1.0e-2 * M_PI/180.0, 1.0e-2 * M_PI/180.0).finished()); // 1.0e-2
 
     // Cost noise models
-    // auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<15.0, 15.0, 15.0, 15.0).finished());
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 4.0/3.0); // z      0.025/3.0 
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 4.0/3.0 ); // z      4.0/3.0        NoiseLess: 3.8      NOisy: 3.9/3.0
     // auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.050/3.0); // UWB       
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.35/3.0); // encoder   0.11/3.0
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.35/3.0); // encoder   0.35/3.0   NoiseLess: 0.055    Noisy:  0.08/3.0
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;

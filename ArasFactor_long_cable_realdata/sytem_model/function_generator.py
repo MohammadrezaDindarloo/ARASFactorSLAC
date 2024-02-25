@@ -4023,7 +4023,7 @@ for largest_cable in list_names_without_l:
     rot_init= sf.Rot3.symbolic("Rot_init")  
     p_platform = sf.Vector3.symbolic("position_vector")
 
-    inverseKinematicsSolver(cale_robo_param_inv, p_platform, rot_init, largest_cable)
+    # inverseKinematicsSolver(cale_robo_param_inv, p_platform, rot_init, largest_cable)
 
 # -----------------------------------------------------------------------#
 lc_cat = sf.Vector4.symbolic("encoder")

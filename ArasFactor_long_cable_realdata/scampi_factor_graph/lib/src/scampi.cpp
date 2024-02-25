@@ -250,7 +250,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
 
     // Cost noise models
     auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 4.0/3.0 ); // z      4.0/3.0        NoiseLess: 3.8      NOisy: 3.9/3.0
-    // auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.050/3.0); // UWB       
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // (Rigid cable, without sagging)    
     auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.35/3.0); // encoder   0.35/3.0   NoiseLess: 0.055    Noisy:  0.08/3.0
 
     std::vector<gtsam::Pose3> Optimized_pose_;
@@ -271,7 +271,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
         gtsam::Vector4 enc_data = {enc_data_1, enc_data_2, enc_data_3, enc_data_4};
 
         graph.add(std::make_shared<FK_factor_graoh_cost1>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), enc_data, Sensor_noiseModel_cost1));
-        // graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), uwb_data, Sensor_noiseModel_cost2));
+        // graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), enc_data, Sensor_noiseModel_cost2));
         graph.add(std::make_shared<FK_factor_graoh_cost3>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), Symbol('o', 0), enc_data, Sensor_noiseModel_cost3));
 
         if (sensor_mode_prior_factory)

@@ -3,10 +3,10 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 500;
+    int size_of_calib_sample = 1;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
-        int lenght_of_simulation_data = 100;
+        int lenght_of_simulation_data = 50;
         std::default_random_engine generator(std::random_device{}());
         std::uniform_real_distribution<double> distribution_x(-10.0, 10.0);
         std::uniform_real_distribution<double> distribution_y(-10.0, 10.0);
@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
         std::uniform_real_distribution<double> distribution_offset(-0.0, 0.0);
 
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
-        std::normal_distribution<double> pulley_location_distribution(0.0, 5.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 10.0/sqrt(3.0)/3.0);
 
         // robot characteristic
         CableRobotParams robot_params(0.7100703113867337, 333.54);

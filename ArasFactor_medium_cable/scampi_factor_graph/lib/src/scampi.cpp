@@ -251,7 +251,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     // Cost noise models
     auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.005/sqrt(3.0)/3.0); // z  inv: 0.001/sqrt(3.0)/3.0 ---- rec: 0.005/sqrt(3.0)/3.0
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.01/3.0); // l_||p_b-p_a||       
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.003/3.0); // encoder    inv: 0.001/3.0 ---- rec: 0.003/3.0
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.005/3.0); // encoder    inv: 0.001/3.0 ---- rec: 0.003/3.0
 
     auto prior_noiseModel_offset = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<1e-4, 1e-4, 1e-4, 1e-4).finished());
     auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<1e-4, 1e-4, 1e-4).finished());

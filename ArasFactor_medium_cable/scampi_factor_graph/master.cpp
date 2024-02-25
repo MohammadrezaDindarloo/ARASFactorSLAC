@@ -226,12 +226,12 @@ int main(int argc, char *argv[])
                 Eigen::Vector3d p_endeffector = p_platform_collection[i];
                 Eigen::Matrix3d rot_init = rot_init_platform_collection[i];
                 std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init, p_endeffector);
-                // gtsam::Rot3 rot_platform = EigenMatrixToGtsamRot3(rot_init.inverse() * IKresults[0]);    
-                // std::cout << std::endl << "rot_platform pitch: " << std::endl << rot_platform.pitch() * 180.0/M_PI << std::endl;
-                // std::cout << std::endl << "rot_platform roll: " << std::endl << rot_platform.roll() * 180.0/M_PI << std::endl;
-                // std::cout << std::endl << "rot_platform yaw: " << std::endl << rot_platform.yaw() * 180.0/M_PI << std::endl;
-                // std::cout << std::endl << "p_platform: " << std::endl << p_platform_collection[i] << std::endl;
-                // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
+                gtsam::Rot3 rot_platform = EigenMatrixToGtsamRot3(rot_init.inverse() * IKresults[0]);    
+                std::cout << std::endl << "rot_platform pitch: " << std::endl << rot_platform.pitch() * 180.0/M_PI << std::endl;
+                std::cout << std::endl << "rot_platform roll: " << std::endl << rot_platform.roll() * 180.0/M_PI << std::endl;
+                std::cout << std::endl << "rot_platform yaw: " << std::endl << rot_platform.yaw() * 180.0/M_PI << std::endl;
+                std::cout << std::endl << "p_platform: " << std::endl << p_platform_collection[i] << std::endl;
+                std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
                 // std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
                 // std::cout << std::endl << "c1: " << std::endl << IKresults[3] << std::endl;
                 // std::cout << std::endl << "c2: " << std::endl << IKresults[4] << std::endl;

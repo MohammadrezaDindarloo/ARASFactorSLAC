@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 100;
+    int size_of_calib_sample = 1;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
         std::default_random_engine generator(std::random_device{}());
@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
             // std::cout << std::endl << "rot_platform pitch: " << std::endl << rotplat.pitch() * 180.0/M_PI << std::endl;
             // std::cout << std::endl << "rot_platform yaw: " << std::endl << rotplat.yaw() * 180.0/M_PI << std::endl;
             // std::cout << std::endl << "p_platform: " << std::endl << p_platform << std::endl;
-            // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
+            std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
             // std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
             // std::cout << std::endl << "c1: " << std::endl << IKresults[3] << std::endl;
             // std::cout << std::endl << "c2: " << std::endl << IKresults[4] << std::endl;

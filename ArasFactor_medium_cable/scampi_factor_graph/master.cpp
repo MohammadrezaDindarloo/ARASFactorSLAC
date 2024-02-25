@@ -3,10 +3,10 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 500;
+    int size_of_calib_sample = 1;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
-        bool simulation_mode_use_recordyn_data = false;
+        bool simulation_mode_use_recordyn_data = true;
         std::default_random_engine generator(std::random_device{}());
         std::uniform_real_distribution<double> distribution_x(-0.4, 0.4);
         std::uniform_real_distribution<double> distribution_y(-1.3, 1.3);
@@ -331,19 +331,19 @@ int main(int argc, char *argv[])
         calibration_result.push_back({error_pulley_optimized_a, error_pulley_optimized_b, error_pulley_optimized_c, error_pulley_optimized_d, sum_pulley_error_optimized,
                                       error_offset_a, error_offset_b, error_offset_c, error_offset_d, sum_offset_error_optimized});
 
-        std::ofstream file_Optimized_pose_slakc("./result/Optimized_pose_slakc.csv"); // Optimized_pose_slakc      Optimized_pose_localization
-        for (const auto& calib : Optimized_pose) // Loop through the vector elements
-        {
-            file_Optimized_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line
-        }
-        file_Optimized_pose_slakc.close(); // Close the file stream 
+        // std::ofstream file_Optimized_pose_slakc("./result/Optimized_pose_localization.csv"); // Optimized_pose_slakc      Optimized_pose_localization
+        // for (const auto& calib : Optimized_pose) // Loop through the vector elements
+        // {
+        //     file_Optimized_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line
+        // }
+        // file_Optimized_pose_slakc.close(); // Close the file stream 
 
-        std::ofstream file_GT_pose_slakc("./result/GT_pose_slakc.csv"); // GT_pose_slakc     GT_pose_localization
-        for (const auto& calib : GT_pose) // Loop through the vector elements
-        {
-            file_GT_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line
-        }
-        file_GT_pose_slakc.close(); // Close the file stream 
+        // std::ofstream file_GT_pose_slakc("./result/GT_pose_localization.csv"); // GT_pose_slakc     GT_pose_localization
+        // for (const auto& calib : GT_pose) // Loop through the vector elements
+        // {
+        //     file_GT_pose_slakc << calib.translation().x() << ',' << calib.translation().y() << ',' << calib.translation().z() << ',' << std::endl; // Write each element, separated by commas, and end the line
+        // }
+        // file_GT_pose_slakc.close(); // Close the file stream 
 
     }
     std::ofstream file("./result/calibration_result.csv"); // Create a file stream object

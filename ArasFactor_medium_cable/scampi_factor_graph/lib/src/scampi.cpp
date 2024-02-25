@@ -11,7 +11,7 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
 
     auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<1.0e1 * M_PI/180, 1.0e1 * M_PI/180, 1.0e1 * M_PI/180).finished());
 
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.105/3.0); // 0.02
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.02/3.0); // 0.02
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.2/3.0);  // 0.2
     auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0);  // 1.0
 
@@ -249,9 +249,9 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
 
     // Cost noise models
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.001/sqrt(3.0)/3.0); // z  inv: 0.001/sqrt(3.0)/3.0 ---- rec: 0.005/sqrt(3.0)/3.0
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.005/sqrt(3.0)/3.0); // z  inv: 0.001/sqrt(3.0)/3.0 ---- rec: 0.005/sqrt(3.0)/3.0
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.01/3.0); // l_||p_b-p_a||       
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.001/3.0); // encoder    inv: 0.001/3.0 ---- rec: 0.003/3.0
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.003/3.0); // encoder    inv: 0.001/3.0 ---- rec: 0.003/3.0
 
     auto prior_noiseModel_offset = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<1e-4, 1e-4, 1e-4, 1e-4).finished());
     auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<1e-4, 1e-4, 1e-4).finished());
@@ -260,7 +260,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;
     graph.emplace_shared<gtsam::PriorFactor<gtsam::Pose3>>(Symbol('X', 0), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[0]), p_platform_collection[0]), prior_noiseModel_init_pose);
-    for (size_t i = 0; i < p_platform_collection.size(); i++)
+    for (size_t i = 0; i < p_platform_collection.size()-1; i++)
     {
         double uwb_data_1 = (b_in_w_collection[i][0] - p_in_w_collection[i][0]).norm() + uwb_noise(generator);
         double uwb_data_2 = (b_in_w_collection[i][1] - p_in_w_collection[i][1]).norm() + uwb_noise(generator);
@@ -324,7 +324,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
             graph.emplace_shared<gtsam::BetweenFactor<gtsam::Pose3>>(Symbol('X', i), Symbol('X', i+1), noisyRelativePose, noiseModel_pose3);
             if (i==p_platform_collection.size()-2)
             {
-                initial_estimate.insert(Symbol('X', p_platform_collection.size()-1), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[p_platform_collection.size()-1]), p_platform_collection[p_platform_collection.size()-1]));
+                initial_estimate.insert(Symbol('X', i+1), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i+1]), p_platform_collection[i+1]));
             }
         }
         // graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i]), prior_noiseModel_delta_rot);
@@ -355,7 +355,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     // params.setVerbosityLM("SUMMARY");
     LevenbergMarquardtOptimizer optimizer(graph, initial_estimate, params);
     Values result_LM = optimizer.optimize();
-    for (size_t i = 0; i < p_platform_collection.size(); i++)
+    for (size_t i = 0; i < p_platform_collection.size()-1; i++)
     {
         Optimized_pose_.push_back(result_LM.at<gtsam::Pose3>(Symbol('X', i)));
         // gtsam::Pose3 poseresult = result_LM.at<gtsam::Pose3>(Symbol('X', i));

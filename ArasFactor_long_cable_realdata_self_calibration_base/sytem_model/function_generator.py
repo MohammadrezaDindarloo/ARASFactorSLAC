@@ -6804,9 +6804,9 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
     for i in range(len(params.ef_points)):
         fh = state.cable_forces[i][0]
         residuals[i] = cat_vars.yl_cat[i] - fh/gc * ( sf.cosh(gc/fh * (cat_vars.length[i] + cat_vars.c1[i])) - cat_vars.c2[i] )
-        residuals[i+4] = calculate_norm(geom_vars.p_in_w[i]-geom_vars.b_in_w[i]) - lc_cat_measure[i]
+        residuals[i+4] = cat_vars.lc_cat[i] - calculate_norm(geom_vars.p_in_w[i]-geom_vars.b_in_w[i])
         residuals[i+8] = cat_vars.lc_cat[i] + offset[i] - lc_cat_measure[i]
-    
+    # calculate_norm(geom_vars.p_in_w[i]-geom_vars.b_in_w[i]) - lc_cat_measure[i]     # rigid cabel
     residuals[12:13]=state.static_constrain[0:2]
 
     cost_z = sf.Vector4.symbolic("P")
@@ -7261,7 +7261,7 @@ for largest_cable in list_names_without_l:
     rot_init= sf.Rot3.symbolic("Rot_init")  
     p_platform = sf.Vector3.symbolic("position_vector")
 
-    inverseKinematicsSolver(cale_robo_param_inv, p_platform, rot_init, largest_cable)
+    # inverseKinematicsSolver(cale_robo_param_inv, p_platform, rot_init, largest_cable)
 
 # -----------------------------------------------------------------------#
 lc_cat = sf.Vector4.symbolic("encoder")

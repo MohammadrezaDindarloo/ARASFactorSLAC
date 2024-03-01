@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 10;
+    int size_of_calib_sample = 1;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
         std::default_random_engine generator(std::random_device{}());
@@ -129,12 +129,12 @@ int main(int argc, char *argv[])
             Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);
             rot_init_platform_collection.push_back(rot_init);
 
-            // gtsam::Rot3 delta_rot_;
-            // double pitch_deltaRot = 0.01 * M_PI/180.0;
-            // double roll_deltaRot = 0.01 * M_PI/180.0;
-            // double yaw_deltaRot = 0.01 * M_PI/180.0;
-            // Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot)));
-            // delta_rot_platform_collection.push_back(deltaRot);
+            gtsam::Rot3 delta_rot_;
+            double pitch_deltaRot = 0.01 * M_PI/180.0;
+            double roll_deltaRot = 0.01 * M_PI/180.0;
+            double yaw_deltaRot = 0.01 * M_PI/180.0;
+            Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot)));
+            delta_rot_platform_collection.push_back(deltaRot);
         }
 
         std::ifstream file_lcat("./dataset/lc_meas_cpp_test.csv");
@@ -161,31 +161,31 @@ int main(int argc, char *argv[])
                                                             real_data_lcat[i][2], real_data_lcat[i][3]));
         }
 
-        // std::ifstream file_forces("./dataset/forces_cpp_test.csv");
-        // std::vector<std::vector<double>> real_data_forces;
-        // if (file_forces) {
-        //     std::string line;
-        //     while (getline(file_forces, line)) {
-        //         std::stringstream ss(line);
-        //         std::vector<double> row;
-        //         std::string val;
-        //         while (getline(ss, val, ',')) {
-        //             row.push_back(stod(val));
-        //         }
-        //         real_data_forces.push_back(row);
-        //     }
-        // std::cout << "Number of force sensor data: " << real_data_forces.size() << std::endl;
-        // } else {
-        //     std::cout << "Unable to open file." << std::endl;
-        // }
-        // // Rewrite the data in it's object
-        // for (size_t i = 0; i < real_data_forces.size(); i++)
-        // {   
-        //     first_cable_force_magnitude.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]).norm());
-        //     double fh0, fv0;
-        //     computeInitCableForcesCalibration<double>(&fh0, &fv0, p_platform_collection[i], rot_init_platform_collection[i], params_calibration);
-        //     cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>({std::abs(fh0), std::abs(fv0)})); 
-        // }
+        std::ifstream file_forces("./dataset/forces_cpp_test.csv");
+        std::vector<std::vector<double>> real_data_forces;
+        if (file_forces) {
+            std::string line;
+            while (getline(file_forces, line)) {
+                std::stringstream ss(line);
+                std::vector<double> row;
+                std::string val;
+                while (getline(ss, val, ',')) {
+                    row.push_back(stod(val));
+                }
+                real_data_forces.push_back(row);
+            }
+        std::cout << "Number of force sensor data: " << real_data_forces.size() << std::endl;
+        } else {
+            std::cout << "Unable to open file." << std::endl;
+        }
+        // Rewrite the data in it's object
+        for (size_t i = 0; i < real_data_forces.size(); i++)
+        {   
+            first_cable_force_magnitude.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]).norm());
+            double fh0, fv0;
+            computeInitCableForcesCalibration<double>(&fh0, &fv0, p_platform_collection[i], rot_init_platform_collection[i], params_calibration);
+            // cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>({std::abs(fh0), std::abs(fv0)})); 
+        }
 
         // start inverse optimization for data generation
         for (size_t i = 0; i < p_platform_collection.size(); i++)
@@ -197,15 +197,15 @@ int main(int argc, char *argv[])
             // rot_init_ = rot_init_.Ypr(yaw, pitch, roll);
             // Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);                  
             // auto p_platform = Eigen::Vector3d(-1.0,8.0,20.0);
-            std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init_platform_collection[i], p_platform_collection[i]);
+            std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params_calibration, rot_init_platform_collection[i], p_platform_collection[i], cable_length_collection[i], pulley_position_estimate);
             // std::cout << std::endl << "rot_platform: " << std::endl << IKresults[0] << std::endl;
             // gtsam::Rot3 rotplat = EigenMatrixToGtsamRot3(IKresults[0]);
             // std::cout << std::endl << "rot_platform roll: " << std::endl << rotplat.roll() * 180.0/M_PI << std::endl;
             // std::cout << std::endl << "rot_platform pitch: " << std::endl << rotplat.pitch() * 180.0/M_PI << std::endl;
             // std::cout << std::endl << "rot_platform yaw: " << std::endl << rotplat.yaw() * 180.0/M_PI << std::endl;
             // std::cout << std::endl << "p_platform: " << std::endl << p_platform << std::endl;
-            // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
-            // std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
+            std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
+            std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
             // std::cout << std::endl << "c1: " << std::endl << IKresults[3] << std::endl;
             // std::cout << std::endl << "c2: " << std::endl << IKresults[4] << std::endl;
             // std::cout << std::endl << "b_in_w: " << std::endl << IKresults[5] << std::endl;
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
             // std::cout << std::endl << "dif_l_cat: " << std::endl << IKresults[1]-cable_length_collection[i] << std::endl;
 
             // cable_length_collection.push_back(IKresults[1]);
-            delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
+            // delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
             cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));  
         }
 
@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
         std::vector<gtsam::Pose3> Optimized_pose;
         std::vector<gtsam::Pose3> GT_pose;
         // start forward optimization
-        std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, cable_offset, cable_length_collection, cable_forces_collection, p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, pulley_position_estimate, first_cable_force_magnitude, &Optimized_pose, &GT_pose);
+        std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params_calibration, cable_offset, cable_length_collection, cable_forces_collection, p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, pulley_position_estimate, first_cable_force_magnitude, &Optimized_pose, &GT_pose);
 
         std::cout << std::endl << "-----------------Calibration Reults------------------------" << std::endl;
         double error_pulley_estimated_a = (Eigen::Vector3d(pulley_position_estimate.row(0)) - Pulley_a).norm() * 1000;

@@ -173,6 +173,7 @@ void getCableForces(T fh, T fv,
 template<typename T>
 void changeOrderForSolver(RobotState<T> state, 
                           RobotParameters<T> params,
+                          Eigen::Matrix<T, 4, 1> cable_length,
                           RobotParameters<T> *params_reordered, 
                           Eigen::VectorXi *new_order)
 {
@@ -186,7 +187,7 @@ void changeOrderForSolver(RobotState<T> state,
     for(int i=0; i < N; i++)
     {
         indeces[i] = i;
-        distance = (params.pulleys[i] - state.p_platform).norm();
+        distance = cable_length[i];
         if (distance > max_distance)
         {
             max_distance = distance;

@@ -400,7 +400,7 @@ void fkSolver(  RobotParameters<double> params,
                                              &Optimized_pose_,
                                              &GT_pose_,
                                              &optimization_result);
-    optimization_result.print();
+    // optimization_result.print();
     //harvest the results
     Eigen::Matrix<double, 4, 3> pulley_optimized;
     *Optimized_pose = Optimized_pose_;

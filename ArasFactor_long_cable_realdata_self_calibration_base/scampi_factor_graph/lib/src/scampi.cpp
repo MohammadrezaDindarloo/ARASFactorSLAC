@@ -4,24 +4,35 @@
 // ****************************************** IK optimization *******************************************
 // a function to create ivnerse kinematic factor graph 
 void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Matrix3d rot_init, int largest_cable,
-                              double init_estimate_h1, double init_estimate_v1, gtsam::Rot3 init_estimate_rot, gtsam::Values *oprimization_result_LM)
+                              double init_estimate_h1, double init_estimate_v1, gtsam::Rot3 init_estimate_rot, Eigen::Matrix<double, 4, 3> pulley_position_estimate, gtsam::Values *oprimization_result_LM)
 {
     NonlinearFactorGraph graph;
     Values initial_estimate;
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.02/3.0); // 0.085/3.0
-    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.02/3.0); // 0.06/3.0
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 0.02/3.0
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 0.02/3.0
     auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 1.0/3.0
-    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<2.0e-1 * M_PI/180.0, 2.0e-1 * M_PI/180.0, 2.0e-1 * M_PI/180.0).finished()); // 2.0e-1
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<25.0 * M_PI/180.0, 25.0 * M_PI/180.0, 25.0 * M_PI/180.0).finished()); // 2.0e-1
+    auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<10.0/sqrt(3.0)/3.0, 10.0/sqrt(3.0)/3.0, 10.0/sqrt(3.0)/3.0).finished());
 
     graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, Sensor_noiseModel_cost1));
     graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, Sensor_noiseModel_cost2));
     graph.add(std::make_shared<IK_factor_graoh_cost3>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, Sensor_noiseModel_cost3));
-    
+
     graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', 1), init_estimate_rot, prior_noiseModel_delta_rot);
+
+    graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 0), gtsam::Point3(pulley_position_estimate.row(0)), prior_noiseModel_pulley);
+    graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 1), gtsam::Point3(pulley_position_estimate.row(1)), prior_noiseModel_pulley);
+    graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 2), gtsam::Point3(pulley_position_estimate.row(2)), prior_noiseModel_pulley);
+    graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 3), gtsam::Point3(pulley_position_estimate.row(3)), prior_noiseModel_pulley);
 
     initial_estimate.insert(Symbol('h', 1), init_estimate_h1);
     initial_estimate.insert(Symbol('v', 1), init_estimate_v1);
     initial_estimate.insert(Symbol('r', 1), init_estimate_rot);
+    
+    initial_estimate.insert(Symbol('p', 0), gtsam::Point3(pulley_position_estimate.row(0)));
+    initial_estimate.insert(Symbol('p', 1), gtsam::Point3(pulley_position_estimate.row(1)));
+    initial_estimate.insert(Symbol('p', 2), gtsam::Point3(pulley_position_estimate.row(2)));
+    initial_estimate.insert(Symbol('p', 3), gtsam::Point3(pulley_position_estimate.row(3)));
 
     gtsam::LevenbergMarquardtParams params; 
     int max_iterations = params.maxIterations;
@@ -34,12 +45,19 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
         std::cout << "!!!!!!!!!!!!!! inverse kinematic error is too high !!!!!!!!!!!!!!" << std::endl;
     }
     *oprimization_result_LM = result_LM;
+    
+    std::cout << "p0_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 0)) << std::endl;
+    std::cout << "p1_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 1)) << std::endl;
+    std::cout << "p2_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 2)) << std::endl;
+    std::cout << "p3_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 3)) << std::endl;
 }
 
 // a function to hold parameters and invoke optimizer and back the optimized data
 void ikSolver(RobotParameters<double> params, 
               Eigen::Matrix3d rot_init, 
               Eigen::Vector3d p_platform,
+              Eigen::Matrix<double, 4, 1> cable_length,
+              Eigen::Matrix<double, 4, 3> pulley_position_estimate,
               IKDataOut<double> *result)
 {
     //reorder the cable forces and choose the cable with largest length as the the first cable (for numerical stability)
@@ -48,7 +66,7 @@ void ikSolver(RobotParameters<double> params,
     RobotState<double> state;
     state.rot_platform = rot_init;
     state.p_platform = p_platform;
-    changeOrderForSolver<double>(state, params, &params_reord, &reorder_idx);
+    changeOrderForSolver<double>(state, params, cable_length, &params_reord, &reorder_idx);
     //Compute initil cable forces as starting points for the solver
     double fh0, fv0;
     computeInitCableForces<double>(&fh0, &fv0, p_platform, rot_init, params_reord);
@@ -164,7 +182,7 @@ void ikSolver(RobotParameters<double> params,
     // run optimization!
     gtsam::Values optimization_result;
     inverse_kinematic_factor_graph_optimizer(p_platform, rot_init, largest_cable,
-                                            init_estimate_h1, init_estimate_v1, init_estimate_rot, &optimization_result);
+                                            init_estimate_h1, init_estimate_v1, init_estimate_rot, pulley_position_estimate, &optimization_result);
 
     // optimization_result.print();
     //harvest the results
@@ -212,12 +230,12 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     std::default_random_engine generator(std::random_device{}());
 
     // noise hander
-    double all_noise_activation = 10.0;
+    double all_noise_activation = 1.0;
 
     // Encoder noise model
     double encoder_noise_gain = 1.0;
     encoder_noise_gain = encoder_noise_gain * all_noise_activation;
-    std::normal_distribution<double> encoder_noise(0.0, encoder_noise_gain * (0.001)/3.0); // 0.1 degree in orientation error
+    std::normal_distribution<double> encoder_noise(0.0, encoder_noise_gain * (0.01)/3.0); // 0.1 degree in orientation error
 
     // UWB noise model
     double uwb_noise_gain = 1.0;
@@ -240,20 +258,19 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     // Noise model for prior pose
     double odometry_noise_gain_prior = 1.0;
     odometry_noise_gain_prior = odometry_noise_gain_prior * all_noise_activation;
-    std::normal_distribution<double> poistion_noise_prior(0.0, odometry_noise_gain_prior * (0.001/sqrt(3.0))/3.0); // 1 mm in position error
-    std::normal_distribution<double> orientation_noise_prior(0.0, odometry_noise_gain_prior * (0.1/sqrt(3.0) * M_PI / 180.0)/3.0); // 0.1 degree in orientation error
+    std::normal_distribution<double> poistion_noise_prior(0.0, odometry_noise_gain_prior * (0.01/sqrt(3.0))/3.0); // 1 mm in position error
+    std::normal_distribution<double> orientation_noise_prior(0.0, odometry_noise_gain_prior * (1.0/sqrt(3.0) * M_PI / 180.0)/3.0); // 0.1 degree in orientation error
     double translationnoise_prior = (0.010/sqrt(3.0))/3.0; //in meter 
     double orientationnoise_prior = (1.0/sqrt(3.0) * M_PI / 180.0)/3.0; // in degree and convert to radian
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
     
     auto prior_noiseModel_offset = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<1e-4, 1e-4, 1e-4, 1e-4).finished());
-    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< (30.0 * M_PI/180.0) / 3.0, (30.0 * M_PI/180.0) / 3.0, (30.0 * M_PI/180.0) / 3.0).finished()); // 1.0e-2
-    auto Force_Sensor_noiseModel = gtsam::noiseModel::Isotropic::Sigma(1, 1.0/3.0); //  1.0
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< (5.0e0 * M_PI/180.0) / 3.0, (5.0e0 * M_PI/180.0) / 3.0, (5.0e0 * M_PI/180.0) / 3.0).finished()); // 1.0e-2
 
     // Cost noise models
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 1.5/3.0 ); // z     1.5
-    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // (Rigid cable, without sagging)    
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.35/3.0); // encoder   0.35
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0 ); // z     1.5
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // l -||b-a||   
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.4/3.0); // encoder   0.35
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;
@@ -270,8 +287,6 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
         // graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), enc_data, Sensor_noiseModel_cost2));
         graph.add(std::make_shared<FK_factor_graoh_cost3>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), Symbol('o', 0), enc_data, Sensor_noiseModel_cost3));
         
-        graph.add(std::make_shared<FK_factor_graoh_cost_force_sensor>(Symbol('h', i), Symbol('v', i), first_cable_force_magnitude[i], Force_Sensor_noiseModel));
-
         if (sensor_mode_prior_factory)
         {
             // ******** prior factor ********
@@ -331,7 +346,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     }
 
     graph.emplace_shared<gtsam::PriorFactor<gtsam::Vector4>>(Symbol('o', 0), gtsam::Vector4(0.0, 0.0, 0.0, 0.0), prior_noiseModel_offset);
-
+    
     // Initial estimate
     initial_estimate.insert(Symbol('p', 0), gtsam::Point3(pulley_position_estimate.row(0)));
     initial_estimate.insert(Symbol('p', 1), gtsam::Point3(pulley_position_estimate.row(1)));

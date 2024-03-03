@@ -38,7 +38,8 @@ std::vector<MatrixXd> IK_Factor_Graph_Optimization(CableRobotParams robot_params
                                                    Eigen::Matrix3d rot_init, 
                                                    Eigen::Vector3d p_platform,
                                                    Eigen::Matrix<double, 4, 1> cable_length,
-                                                   Eigen::Matrix<double, 4, 3> pulley_position_estimate)
+                                                   Eigen::Matrix<double, 4, 3> pulley_position_estimate,
+                                                   int inner_interval)
 {
     std::vector<MatrixXd> results_list;
     IKDataOut<double> ik_result;
@@ -58,7 +59,7 @@ std::vector<MatrixXd> IK_Factor_Graph_Optimization(CableRobotParams robot_params
     params.g_c= robot_params.g_c_;
     params.f_g = robot_params.f_g_;
 
-    ikSolver(params, rot_init, p_platform, cable_length, pulley_position_estimate, &ik_result);
+    ikSolver(params, rot_init, p_platform, cable_length, pulley_position_estimate, inner_interval, &ik_result);
 
     //Extract The results and return them as a list of matrices to python
     results_list.push_back(ik_result.rot_platform);

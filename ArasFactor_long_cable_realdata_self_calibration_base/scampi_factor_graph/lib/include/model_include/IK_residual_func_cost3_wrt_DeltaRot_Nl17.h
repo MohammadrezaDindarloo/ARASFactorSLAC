@@ -22,6 +22,7 @@ namespace sym {
  *     fv1: Scalar
  *     DeltaRot: Rot3
  *     position_vector: Matrix31
+ *     encoder: Matrix41
  *     p_a: Matrix31
  *     p_b: Matrix31
  *     p_c: Matrix31
@@ -35,13 +36,14 @@ namespace sym {
 template <typename Scalar>
 Eigen::Matrix<Scalar, 4, 3> IkResidualFuncCost3WrtDeltarotNl17(
     const Scalar fh1, const Scalar fv1, const sym::Rot3<Scalar>& DeltaRot,
-    const Eigen::Matrix<Scalar, 3, 1>& position_vector, const Eigen::Matrix<Scalar, 3, 1>& p_a,
-    const Eigen::Matrix<Scalar, 3, 1>& p_b, const Eigen::Matrix<Scalar, 3, 1>& p_c,
-    const Eigen::Matrix<Scalar, 3, 1>& p_d, const sym::Rot3<Scalar>& Rot_init,
-    const Scalar epsilon) {
+    const Eigen::Matrix<Scalar, 3, 1>& position_vector, const Eigen::Matrix<Scalar, 4, 1>& encoder,
+    const Eigen::Matrix<Scalar, 3, 1>& p_a, const Eigen::Matrix<Scalar, 3, 1>& p_b,
+    const Eigen::Matrix<Scalar, 3, 1>& p_c, const Eigen::Matrix<Scalar, 3, 1>& p_d,
+    const sym::Rot3<Scalar>& Rot_init, const Scalar epsilon) {
   // Total ops: 2054
 
   // Unused inputs
+  (void)encoder;
   (void)epsilon;
 
   // Input arrays

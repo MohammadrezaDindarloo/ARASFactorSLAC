@@ -254,11 +254,6 @@ def changeOrderForSolver(state, params, largest_cable):
     N = len(params.pulleys)
     order = sf.Matrix([i for i in range(N)])
 
-    distances = [0.0] * N
-    max_distance, distance = 0, 0
-    max_index = 0
-    indeces = sf.Matrix([i for i in range(N)])
-
     if largest_cable == '0123':
         order[0] = 0
         order[1] = 1
@@ -527,6 +522,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
     fh1 = sf.Symbol('fh1')
     fv1 = sf.Symbol('fv1')
     DeltaRot = sf.Rot3.symbolic("DeltaRot")
+    encoder = sf.Vector4.symbolic("encoder")
 
     gc = params_.g_c
     init_R = rot_init_
@@ -553,12 +549,14 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
     getCatenaryVariables(state, params, geom_vars, cat_vars)
     
 
-    residuals = [0] * (12)
+    residuals = [0] * (16)
     for i in range(len(params.ef_points)):
         fh = state.cable_forces[i][0]
         residuals[i] = cat_vars.yl_cat[i] - fh/gc * ( sf.cosh(gc/fh * (cat_vars.length[i] + cat_vars.c1[i])) - cat_vars.c2[i] )
         residuals[i+4] = cat_vars.lc_cat[i] - calculate_norm(geom_vars.p_in_w[i]-geom_vars.b_in_w[i])
         residuals[i+8] = sf.exp(-fh)
+        residuals[i+12] = cat_vars.lc_cat[i] - encoder[i]
+
     
     cost_z = sf.Vector4.symbolic("P")
     for i in range(4):
@@ -571,12 +569,17 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
     cost_force = sf.Vector4.symbolic("P")
     for i in range(4):
         cost_force[i] = residuals[i+8] 
+
+    cost_encoder = sf.Vector4.symbolic("P")
+    for i in range(4):
+        cost_encoder[i] = residuals[i+12] 
         
     if name == name_list[0]:
         print("--------------------generating header files name_list[0] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),                        
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -587,6 +590,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -597,6 +601,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -607,6 +612,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         
         def IK_residual_func_cost1_wrt_fv1_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -617,6 +623,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -628,6 +635,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -638,6 +646,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -648,6 +657,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -660,6 +670,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -670,6 +681,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -681,6 +693,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -692,6 +705,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -702,6 +716,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -713,6 +728,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -723,6 +739,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -733,6 +750,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -745,6 +763,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -755,6 +774,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -766,6 +786,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -777,6 +798,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -787,6 +809,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -798,6 +821,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -808,6 +832,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -818,6 +843,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -827,13 +853,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[0] IK----------")    
         
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl0, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl0, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl0, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl0, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl0, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl0, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl0, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl0(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl0, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[0] IK----------")    
+
         
     if name == name_list[1]:
         print("--------------------generating header files name_list[1] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -844,6 +963,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -855,6 +975,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -866,6 +987,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -876,6 +998,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -887,6 +1010,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -897,6 +1021,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -907,6 +1032,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -919,6 +1045,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -929,6 +1056,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -940,6 +1068,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -951,6 +1080,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -961,6 +1091,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -972,6 +1103,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -982,6 +1114,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -992,6 +1125,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1004,6 +1138,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1014,6 +1149,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1025,6 +1161,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1036,6 +1173,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1046,6 +1184,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1057,6 +1196,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1067,6 +1207,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1077,6 +1218,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1086,6 +1228,98 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[1] IK----------") 
    
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl1, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl1, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl1, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl1, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl1, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl1, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl1, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl1(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl1, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[1] IK----------")    
 
 
     if name == name_list[2]:
@@ -1093,6 +1327,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_z
         def IK_residual_func_cost1_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1103,6 +1338,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1114,6 +1350,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1125,6 +1362,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1135,6 +1373,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1146,6 +1385,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1156,6 +1396,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1166,6 +1407,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1178,6 +1420,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1188,6 +1431,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1199,6 +1443,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1210,6 +1455,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1220,6 +1466,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1231,6 +1478,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1241,6 +1489,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1251,6 +1500,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1263,6 +1513,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1273,6 +1524,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1284,6 +1536,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1295,6 +1548,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1305,6 +1559,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1316,6 +1571,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1326,6 +1582,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1336,6 +1593,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1345,7 +1603,98 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[2] IK----------") 
 
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl2, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl2, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl2, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl2, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl2, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl2, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl2, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl2(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl2, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[2] IK----------")    
         
 
     if name == name_list[3]:
@@ -1353,6 +1702,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_z
         def IK_residual_func_cost1_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1363,6 +1713,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1374,6 +1725,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1385,6 +1737,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1395,6 +1748,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1406,6 +1760,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1416,6 +1771,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1426,6 +1782,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1438,6 +1795,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1448,6 +1806,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1459,6 +1818,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1470,6 +1830,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1480,6 +1841,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1491,6 +1853,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1501,6 +1864,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1511,6 +1875,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1523,6 +1888,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1533,6 +1899,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1544,6 +1911,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1555,6 +1923,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1565,6 +1934,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1576,6 +1946,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1586,6 +1957,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1596,6 +1968,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1605,13 +1978,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[3] IK----------") 
 
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl3, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl3, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl3, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl3, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl3, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl3, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl3, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl3(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl3, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[3] IK----------")    
+
         
     if name == name_list[4]:
         print("--------------------generating header files name_list[4] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1622,6 +2088,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1633,6 +2100,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1644,6 +2112,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1654,6 +2123,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1665,6 +2135,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1675,6 +2146,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1685,6 +2157,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1697,6 +2170,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1707,6 +2181,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1718,6 +2193,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1729,6 +2205,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1739,6 +2216,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1750,6 +2228,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1760,6 +2239,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1770,6 +2250,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1782,6 +2263,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1792,6 +2274,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1803,6 +2286,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1814,6 +2298,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1824,6 +2309,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1835,6 +2321,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1845,6 +2332,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1855,6 +2343,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1864,12 +2353,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[4] IK----------") 
 
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl4, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl4, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl4, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl4, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl4, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl4, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl4, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl4(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl4, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[4] IK----------")    
+
 
     if name == name_list[5]:
         print("--------------------generating header files name_list[5] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1880,6 +2463,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1891,6 +2475,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1902,6 +2487,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1912,6 +2498,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1923,6 +2510,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1933,6 +2521,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1943,6 +2532,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -1955,6 +2545,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1965,6 +2556,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1976,6 +2568,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1987,6 +2580,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -1997,6 +2591,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2008,6 +2603,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2018,6 +2614,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2028,6 +2625,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2040,6 +2638,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2050,6 +2649,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2061,6 +2661,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2072,6 +2673,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2082,6 +2684,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2093,6 +2696,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2103,6 +2707,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2113,6 +2718,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2121,13 +2727,107 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost3_wrt_pd_Nl5, config=codegen.CppConfig(),)
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[5] IK----------") 
-        
+
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl5, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl5, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl5, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl5, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl5, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl5, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl5, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl5(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl5, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[5] IK----------")    
+
         
     if name == name_list[6]:
         print("--------------------generating header files name_list[6] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2138,6 +2838,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2149,6 +2850,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2160,6 +2862,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2170,6 +2873,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2181,6 +2885,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2191,6 +2896,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2201,6 +2907,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2213,6 +2920,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2223,6 +2931,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2234,6 +2943,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2245,6 +2955,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2255,6 +2966,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2266,6 +2978,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2276,6 +2989,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2286,6 +3000,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2298,6 +3013,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2308,6 +3024,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2319,6 +3036,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2330,6 +3048,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2340,6 +3059,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2351,6 +3071,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2361,6 +3082,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2371,6 +3093,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2379,13 +3102,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost3_wrt_pd_Nl6, config=codegen.CppConfig(),)
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[6] IK----------") 
-        
+
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl6, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl6, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl6, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl6, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl6, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl6, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl6, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl6(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl6, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[6] IK----------")    
         
     if name == name_list[7]:
         print("--------------------generating header files name_list[7] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2396,6 +3212,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2407,6 +3224,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2418,6 +3236,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2428,6 +3247,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2439,6 +3259,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2449,6 +3270,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2459,6 +3281,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2471,6 +3294,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2481,6 +3305,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2492,6 +3317,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2503,6 +3329,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2513,6 +3340,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2524,6 +3352,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2534,6 +3363,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2544,6 +3374,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2556,6 +3387,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2566,6 +3398,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2577,6 +3410,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2588,6 +3422,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2598,6 +3433,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2609,6 +3445,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2619,6 +3456,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2629,6 +3467,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2637,13 +3476,107 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost3_wrt_pd_Nl7, config=codegen.CppConfig(),)
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[7] IK----------") 
-        
+
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl7, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl7, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl7, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl7, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl7, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl7, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl7, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl7(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl7, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[7] IK----------")    
+
         
     if name == name_list[8]:
         print("--------------------generating header files name_list[8] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2654,6 +3587,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2665,6 +3599,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2676,6 +3611,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2686,6 +3622,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2697,6 +3634,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2707,6 +3645,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2717,6 +3656,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2729,6 +3669,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2739,6 +3680,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2750,6 +3692,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2761,6 +3704,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2771,6 +3715,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2782,6 +3727,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2792,6 +3738,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2802,6 +3749,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2814,6 +3762,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2824,6 +3773,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2835,6 +3785,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2846,6 +3797,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2856,6 +3808,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2867,6 +3820,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2877,6 +3831,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2887,6 +3842,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2896,12 +3852,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[8] IK----------") 
         
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl8, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl8, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl8, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl8, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl8, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl8, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl8, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl8(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl8, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[8] IK----------")    
+
+
     if name == name_list[9]:
         print("--------------------generating header files name_list[9] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2912,6 +3962,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2923,6 +3974,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2934,6 +3986,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2944,6 +3997,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2955,6 +4009,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2965,6 +4020,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2975,6 +4031,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -2987,6 +4044,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -2997,6 +4055,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3008,6 +4067,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3019,6 +4079,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3029,6 +4090,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3040,6 +4102,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3050,6 +4113,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3060,6 +4124,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3072,6 +4137,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3082,6 +4148,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3093,6 +4160,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3104,6 +4172,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3114,6 +4183,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3125,6 +4195,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3135,6 +4206,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3145,6 +4217,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3154,12 +4227,105 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[9] IK----------") 
         
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl9, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl9, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl9, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl9, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl9, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl9, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl9, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl9(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl9, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[9] IK----------")    
+
     if name == name_list[10]:
         print("--------------------generating header files name_list[10] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3170,6 +4336,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3181,6 +4348,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3192,6 +4360,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3202,6 +4371,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3213,6 +4383,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3223,6 +4394,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3233,6 +4405,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3245,6 +4418,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3255,6 +4429,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3266,6 +4441,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3277,6 +4453,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3287,6 +4464,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3298,6 +4476,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3308,6 +4487,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3318,6 +4498,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3330,6 +4511,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3340,6 +4522,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3351,6 +4534,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3362,6 +4546,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3372,6 +4557,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3383,6 +4569,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3393,6 +4580,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3403,6 +4591,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3412,12 +4601,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[10] IK----------") 
         
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl10, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl10, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl10, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl10, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl10, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl10, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl10, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl10(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl10, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[10] IK----------")    
+
+
     if name == name_list[11]:
         print("--------------------generating header files name_list[11] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3428,6 +4711,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3439,6 +4723,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3450,6 +4735,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3460,6 +4746,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3471,6 +4758,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3481,6 +4769,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3491,6 +4780,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3503,6 +4793,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3513,6 +4804,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3524,6 +4816,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3535,6 +4828,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3545,6 +4839,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3556,6 +4851,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3566,6 +4862,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3576,6 +4873,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3588,6 +4886,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3598,6 +4897,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3609,6 +4909,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3620,6 +4921,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3630,6 +4932,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3641,6 +4944,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3651,6 +4955,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3661,6 +4966,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3670,12 +4976,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[11] IK----------") 
         
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl11, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl11, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl11, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl11, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl11, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl11, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl11, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl11(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl11, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[11] IK----------")    
+
+
     if name == name_list[12]:
         print("--------------------generating header files name_list[12] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3686,6 +5086,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3697,6 +5098,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3708,6 +5110,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3718,6 +5121,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3729,6 +5133,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3739,6 +5144,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3749,6 +5155,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3761,6 +5168,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3772,6 +5180,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3783,6 +5192,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3794,6 +5204,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3804,6 +5215,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3815,6 +5227,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3825,6 +5238,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3835,6 +5249,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3847,6 +5262,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3857,6 +5273,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3868,6 +5285,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3879,6 +5297,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3889,6 +5308,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3900,6 +5320,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3910,6 +5331,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3920,6 +5342,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3929,12 +5352,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[12] IK----------") 
         
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl12, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl12, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl12, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl12, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl12, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl12, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl12, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl12(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl12, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[12] IK----------")    
+
+
     if name == name_list[13]:
         print("--------------------generating header files name_list[13] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3945,6 +5462,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3956,6 +5474,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3967,6 +5486,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -3977,6 +5497,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3988,6 +5509,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -3998,6 +5520,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4008,6 +5531,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4020,6 +5544,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4030,6 +5555,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4041,6 +5567,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4052,6 +5579,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4062,6 +5590,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4073,6 +5602,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4083,6 +5613,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4093,6 +5624,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4105,6 +5637,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4115,6 +5648,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4126,6 +5660,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4137,6 +5672,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4147,6 +5683,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4158,6 +5695,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4168,6 +5706,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4178,6 +5717,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4186,13 +5726,107 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost3_wrt_pd_Nl13, config=codegen.CppConfig(),)
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[13] IK----------") 
-        
-        
+
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl13, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl13, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl13, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl13, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl13, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl13, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl13, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl13(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl13, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[13] IK----------")    
+
+
     if name == name_list[14]:
         print("--------------------generating header files name_list[14] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4203,6 +5837,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4214,6 +5849,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4225,6 +5861,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4235,6 +5872,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4246,6 +5884,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4256,6 +5895,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4266,6 +5906,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4278,6 +5919,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4288,6 +5930,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4299,6 +5942,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4310,6 +5954,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4320,6 +5965,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4331,6 +5977,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4341,6 +5988,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4351,6 +5999,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4363,6 +6012,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4373,6 +6023,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4384,6 +6035,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4395,6 +6047,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4405,6 +6058,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4416,6 +6070,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4426,6 +6081,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4436,6 +6092,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4445,12 +6102,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[14] IK----------") 
         
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl14, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl14, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl14, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl14, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl14, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl14, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl14, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl14(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl14, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[14] IK----------")    
+
+
     if name == name_list[15]:
         print("--------------------generating header files name_list[15] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4461,6 +6212,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4472,6 +6224,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4483,6 +6236,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4493,6 +6247,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4504,6 +6259,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4514,6 +6270,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4524,6 +6281,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4536,6 +6294,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4546,6 +6305,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4557,6 +6317,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4568,6 +6329,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4578,6 +6340,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4589,6 +6352,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4599,6 +6363,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4609,6 +6374,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4621,6 +6387,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4631,6 +6398,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4642,6 +6410,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4653,6 +6422,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4663,6 +6433,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4674,6 +6445,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4684,6 +6456,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4694,6 +6467,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4703,12 +6477,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[15] IK----------") 
         
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl15, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl15, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl15, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl15, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl15, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl15, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl15, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl15(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl15, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[0] IK----------")    
+
 
     if name == name_list[16]:
         print("--------------------generating header files name_list[16] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4719,6 +6587,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4730,6 +6599,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4741,6 +6611,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4751,6 +6622,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4762,6 +6634,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4772,6 +6645,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4782,6 +6656,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4794,6 +6669,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4804,6 +6680,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4815,6 +6692,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4826,6 +6704,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4836,6 +6715,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4847,6 +6727,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4857,6 +6738,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4867,6 +6749,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4879,6 +6762,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4889,6 +6773,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4900,6 +6785,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4911,6 +6797,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4921,6 +6808,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4932,6 +6820,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4942,6 +6831,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4952,6 +6842,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -4961,12 +6852,105 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[16] IK----------") 
         
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl16, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl16, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl16, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl16, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl16, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl16, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl16, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl16(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl16, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[16] IK----------")    
+
     if name == name_list[17]:
         print("--------------------generating header files name_list[17] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4977,6 +6961,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4988,6 +6973,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -4999,6 +6985,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5009,6 +6996,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5020,6 +7008,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5030,6 +7019,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5040,6 +7030,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5052,6 +7043,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5062,6 +7054,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5073,6 +7066,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5084,6 +7078,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5094,6 +7089,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5105,6 +7101,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5115,6 +7112,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5125,6 +7123,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5137,6 +7136,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5147,6 +7147,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5158,6 +7159,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5169,6 +7171,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5179,6 +7182,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5190,6 +7194,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5200,6 +7205,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5210,6 +7216,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5219,12 +7226,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[17] IK----------") 
         
-        
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl17, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl17, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl17, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl17, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl17, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl17, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl17, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl17(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl17, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[17] IK----------")    
+
+
     if name == name_list[18]:
         print("--------------------generating header files name_list[18] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5235,6 +7336,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5246,6 +7348,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5257,6 +7360,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5267,6 +7371,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5278,6 +7383,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5288,6 +7394,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5298,6 +7405,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5310,6 +7418,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5320,6 +7429,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5331,6 +7441,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5342,6 +7453,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5352,6 +7464,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5363,6 +7476,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5373,6 +7487,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5383,6 +7498,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5395,6 +7511,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5405,6 +7522,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5416,6 +7534,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5427,6 +7546,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5437,6 +7557,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5448,6 +7569,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5458,6 +7580,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5468,6 +7591,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5477,12 +7601,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
         print("--------------------cost_forces header files generated name_list[18] IK----------") 
         
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl18, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl18, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl18, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl18, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl18, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl18, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl18, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl18(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl18, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[18] IK----------")    
+
 
     if name == name_list[19]:
         print("--------------------generating header files name_list[19] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5493,6 +7711,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5504,6 +7723,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5515,6 +7735,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5525,6 +7746,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5536,6 +7758,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5546,6 +7769,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5556,6 +7780,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5568,6 +7793,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5578,6 +7804,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5589,6 +7816,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5600,6 +7828,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5610,6 +7839,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5621,6 +7851,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5631,6 +7862,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5641,6 +7873,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5653,6 +7886,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5663,6 +7897,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5674,6 +7909,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5685,6 +7921,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5695,6 +7932,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5706,6 +7944,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5716,6 +7955,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5726,6 +7966,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5736,11 +7977,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         print("--------------------cost_forces header files generated name_list[19] IK----------") 
         
         
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl19, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl19, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl19, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl19, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl19, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl19, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl19, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl19(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl19, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[19] IK----------")    
+
+
     if name == name_list[20]:
         print("--------------------generating header files name_list[20] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5751,6 +8087,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5762,6 +8099,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5773,6 +8111,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5783,6 +8122,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5794,6 +8134,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5804,6 +8145,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5814,6 +8156,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5826,6 +8169,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5836,6 +8180,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5847,6 +8192,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5858,6 +8204,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5868,6 +8215,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5879,6 +8227,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5889,6 +8238,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5899,6 +8249,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5911,6 +8262,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5921,6 +8273,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5932,6 +8285,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5943,6 +8297,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -5953,6 +8308,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5964,6 +8320,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5974,6 +8331,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5984,6 +8342,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -5992,13 +8351,107 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost3_wrt_pd_Nl20, config=codegen.CppConfig(),)
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[20] IK----------") 
-        
-        
+
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl20, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl20, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl20, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl20, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl20, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl20, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl20, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl20(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl20, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[20] IK----------")    
+
+
     if name == name_list[21]:
         print("--------------------generating header files name_list[21] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6009,6 +8462,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6020,6 +8474,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6031,6 +8486,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6041,6 +8497,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6052,6 +8509,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6062,6 +8520,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6072,6 +8531,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6084,6 +8544,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6094,6 +8555,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6105,6 +8567,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6116,6 +8579,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6126,6 +8590,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6137,6 +8602,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6147,6 +8613,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6157,6 +8624,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6169,6 +8637,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6179,6 +8648,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6190,6 +8660,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6201,6 +8672,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6211,6 +8683,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6222,6 +8695,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6232,6 +8706,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6242,6 +8717,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6251,11 +8727,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[21] IK----------") 
         
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl21, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl21, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl21, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl21, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl21, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl21, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl21, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl21(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl21, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[021] IK----------")    
+
+
     if name == name_list[22]:
         print("--------------------generating header files name_list[22] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6266,6 +8837,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6277,6 +8849,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6288,6 +8861,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6298,6 +8872,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6309,6 +8884,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6319,6 +8895,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6329,6 +8906,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6341,6 +8919,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6351,6 +8930,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6362,6 +8942,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6373,6 +8954,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6383,6 +8965,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6394,6 +8977,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6404,6 +8988,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6414,6 +8999,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6426,6 +9012,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6436,6 +9023,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6447,6 +9035,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6458,6 +9047,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6468,6 +9058,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6479,6 +9070,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6489,6 +9081,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6499,6 +9092,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6508,11 +9102,106 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[22] IK----------") 
         
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl22, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl22, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl22, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl22, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl22, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl22, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl22, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl22(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl22, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[22] IK----------")    
+
+
     if name == name_list[23]:
         print("--------------------generating header files name_list[23] IK---------------------")
         cost = cost_z
         def IK_residual_func_cost1_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6523,6 +9212,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_DeltaRot_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6534,6 +9224,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fh1_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6545,6 +9236,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_fv1_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6555,6 +9247,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pa_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6566,6 +9259,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pb_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6576,6 +9270,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pc_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6586,6 +9281,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost1_wrt_pd_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6598,6 +9294,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_cat
         def IK_residual_func_cost2_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6608,6 +9305,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_DeltaRot_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6619,6 +9317,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fh1_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6630,6 +9329,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_fv1_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6640,6 +9340,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pa_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6651,6 +9352,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pb_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6661,6 +9363,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pc_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6671,6 +9374,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost2_wrt_pd_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6683,6 +9387,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         cost = cost_force
         def IK_residual_func_cost3_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6693,6 +9398,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_DeltaRot_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6704,6 +9410,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fh1_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6715,6 +9422,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_fv1_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                         position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
                         p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                         Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                         ) -> sf.Vector4:
@@ -6725,6 +9433,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pa_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6736,6 +9445,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pb_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6746,6 +9456,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pc_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6756,6 +9467,7 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
 
         def IK_residual_func_cost3_wrt_pd_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
                             position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
                             p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
                             Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
                             ) -> sf.Vector4:
@@ -6764,6 +9476,99 @@ def ikSolver(p_platform, rot_init, params, largest_cable, result):
         resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost3_wrt_pd_Nl23, config=codegen.CppConfig(),)
         resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory) 
         print("--------------------cost_forces header files generated name_list[23] IK----------") 
+
+        cost = cost_encoder
+        def IK_residual_func_cost4_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            return sf.V4(cost) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_Nl23, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_DeltaRot_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_DeltaRot = cost.jacobian(DeltaRot)
+            return sf.Matrix43(diff_DeltaRot)  
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_DeltaRot_Nl23, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fh1_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fh1 = cost.diff(fh1)
+            return sf.V4(diff_fh1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fh1_Nl23, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+
+        def IK_residual_func_cost4_wrt_fv1_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                        position_vector: sf.Vector3.symbolic("position_vector"),
+                        encoder: sf.V4.symbolic('encoder'),
+                        p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                        Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                        ) -> sf.Vector4:
+            diff_fv1 = cost.diff(fv1)
+            return sf.V4(diff_fv1) 
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_fv1_Nl23, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pa_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pa = cost.jacobian(p_a)
+            return sf.Matrix43(diff_pa)
+
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pa_Nl23, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pb_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pb = cost.jacobian(p_b)
+            return sf.Matrix43(diff_pb)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pb_Nl23, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pc_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pc = cost.jacobian(p_c)
+            return sf.Matrix43(diff_pc)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pc_Nl23, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+
+        def IK_residual_func_cost4_wrt_pd_Nl23(fh1: sf.Symbol('fh1'), fv1: sf.Symbol('fv1'), DeltaRot: sf.Rot3.symbolic("DeltaRot"),
+                            position_vector: sf.Vector3.symbolic("position_vector"),
+                            encoder: sf.V4.symbolic('encoder'),
+                            p_a: sf.V3.symbolic('p_a'), p_b: sf.V3.symbolic('p_b'), p_c: sf.V3.symbolic("p_c"),  p_d: sf.V3.symbolic("p_d"),
+                            Rot_init: sf.Rot3.symbolic("Rot_init"), epsilon: sf.Scalar = 0
+                            ) -> sf.Vector4:
+            diff_pd = cost.jacobian(p_d)
+            return sf.Matrix43(diff_pd)
+        resedual_func_codegen = codegen.Codegen.function(func=IK_residual_func_cost4_wrt_pd_Nl23, config=codegen.CppConfig(),)
+        resedual_func_codegen_data = resedual_func_codegen.generate_function(output_dir=out_put_save_directory)
+        print("--------------------cost_encoder header files generated name_list[23] IK----------")    
         print("********************** Generating IK cost function finished **********************") 
 
 
@@ -7261,7 +10066,7 @@ for largest_cable in list_names_without_l:
     rot_init= sf.Rot3.symbolic("Rot_init")  
     p_platform = sf.Vector3.symbolic("position_vector")
 
-    # inverseKinematicsSolver(cale_robo_param_inv, p_platform, rot_init, largest_cable)
+    inverseKinematicsSolver(cale_robo_param_inv, p_platform, rot_init, largest_cable)
 
 # -----------------------------------------------------------------------#
 lc_cat = sf.Vector4.symbolic("encoder")

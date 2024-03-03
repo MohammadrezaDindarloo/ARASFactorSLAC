@@ -4,20 +4,29 @@
 // ****************************************** IK optimization *******************************************
 // a function to create ivnerse kinematic factor graph 
 void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Matrix3d rot_init, int largest_cable,
-                              double init_estimate_h1, double init_estimate_v1, gtsam::Rot3 init_estimate_rot, Eigen::Matrix<double, 4, 3> pulley_position_estimate, int inner_interval, gtsam::Values *oprimization_result_LM)
+                              double init_estimate_h1, double init_estimate_v1, gtsam::Rot3 init_estimate_rot, Eigen::Matrix<double, 4, 3> pulley_position_estimate, 
+                              int inner_interval, Eigen::Matrix<double, 4, 1> cable_length, VectorXi reorder_idx, gtsam::Values *oprimization_result_LM)
 {
+    Eigen::Matrix<double, 4, 1> cable_length_reorder;
+    for(int i = 0; i < cable_length.size(); i++)
+    {
+        cable_length_reorder[i] = cable_length[reorder_idx[i]];
+    }
+
     NonlinearFactorGraph graph;
     Values initial_estimate;
     double interval_rate = 1.0; //std::pow((1.0/double(interval_rate + 1)),2)
     auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.205/3.0); // 0.02/3.0
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.5/3.0); // 0.02/3.0
     auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 1.0/3.0
+    auto Sensor_noiseModel_cost4 = gtsam::noiseModel::Isotropic::Sigma(4, 0.1/3.0); // 1.0/3.0
     auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< 30.0 * M_PI/180.0,  30.0 * M_PI/180.0,  30.0 * M_PI/180.0).finished()); // 2.0e-1
     auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< 5.0/sqrt(3.0)/3.0,  5.0/sqrt(3.0)/3.0,  5.0/sqrt(3.0)/3.0).finished());
 
-    graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, Sensor_noiseModel_cost1));
-    graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, Sensor_noiseModel_cost2));
-    graph.add(std::make_shared<IK_factor_graoh_cost3>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, Sensor_noiseModel_cost3));
+    graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length, Sensor_noiseModel_cost1));
+    graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length, Sensor_noiseModel_cost2));
+    graph.add(std::make_shared<IK_factor_graoh_cost3>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length, Sensor_noiseModel_cost3));
+    graph.add(std::make_shared<IK_factor_graoh_cost4>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length, Sensor_noiseModel_cost4));
 
     // graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', 1), init_estimate_rot, prior_noiseModel_delta_rot);
 
@@ -40,6 +49,7 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     LevenbergMarquardtOptimizer optimizer(graph, initial_estimate, params);
     Values result_LM = optimizer.optimize();
 
+    std::cout << "inverse kinematic optimization error: " << optimizer.error() << std::endl;
     std::cout << "inverse kinematic optimization error: " << optimizer.error() << std::endl;
     if (optimizer.error() > 1e4)
     {
@@ -184,7 +194,7 @@ void ikSolver(RobotParameters<double> params,
     // run optimization!
     gtsam::Values optimization_result;
     inverse_kinematic_factor_graph_optimizer(p_platform, rot_init, largest_cable,
-                                            init_estimate_h1, init_estimate_v1, init_estimate_rot, pulley_position_estimate, inner_interval, &optimization_result);
+                                            init_estimate_h1, init_estimate_v1, init_estimate_rot, pulley_position_estimate, inner_interval, cable_length, reorder_idx, &optimization_result);
 
     // optimization_result.print();
     //harvest the results

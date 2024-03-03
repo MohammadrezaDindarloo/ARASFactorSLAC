@@ -4,11 +4,11 @@ int main(int argc, char *argv[])
 {   
     std::vector<double> force_differences;
     std::vector<gtsam::Vector5> probabilistic_calibration_result;
-    int probabilistic_sample = 1;
+    int probabilistic_sample = 10;
     for (int outer_interval = 0; outer_interval < probabilistic_sample; outer_interval++)  
     {  
         std::default_random_engine generator(std::random_device{}());
-        std::normal_distribution<double> pulley_location_distribution(0.0, 0.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 10.0/sqrt(3.0)/3.0);
 
         Eigen::Vector3d Pulley_a(-125.0, -110.0, 48.0);
         Eigen::Vector3d Pulley_b( 125.0, -110.0, 48.0);
@@ -139,12 +139,12 @@ int main(int argc, char *argv[])
                 Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);
                 rot_init_platform_collection.push_back(rot_init);
 
-                gtsam::Rot3 delta_rot_;
-                double pitch_deltaRot = 0.01 * M_PI/180.0;
-                double roll_deltaRot = 0.01 * M_PI/180.0;
-                double yaw_deltaRot = 0.01 * M_PI/180.0;
-                Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot)));
-                delta_rot_platform_collection.push_back(deltaRot);
+                // gtsam::Rot3 delta_rot_;
+                // double pitch_deltaRot = 0.01 * M_PI/180.0;
+                // double roll_deltaRot = 0.01 * M_PI/180.0;
+                // double yaw_deltaRot = 0.01 * M_PI/180.0;
+                // Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot)));
+                // delta_rot_platform_collection.push_back(deltaRot);
             }
 
             std::ifstream file_lcat("./dataset/lc_meas_cpp_test.csv");
@@ -192,9 +192,6 @@ int main(int argc, char *argv[])
             for (size_t i = 0; i < real_data_forces.size(); i++)
             {   
                 first_cable_force_magnitude.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]).norm());
-                double fh0, fv0;
-                computeInitCableForcesCalibration<double>(&fh0, &fv0, p_platform_collection[i], rot_init_platform_collection[i], params_calibration);
-                // cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>({std::abs(fh0), std::abs(fv0)})); 
             }
 
             // start inverse optimization for data generation
@@ -226,10 +223,10 @@ int main(int argc, char *argv[])
                 // std::cout << std::endl << "sagging_3: " << std::endl << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;
                 // std::cout << std::endl << "sagging_4: " << std::endl << IKresults[1].col(0)[3] - (IKresults[5].col(3) - Pulley_d).norm() << std::endl;
                 // std::cout << "dif_l_cat: " << std::endl << IKresults[1]-cable_length_collection[i] << std::endl;
-                std::cout << "dif_forces: " << IKresults[2].col(0).norm()-first_cable_force_magnitude[i] << std::endl;
+                // std::cout << "dif_forces: " << IKresults[2].col(0).norm()-first_cable_force_magnitude[i] << std::endl;
                 force_differences.push_back(IKresults[2].col(0).norm()-first_cable_force_magnitude[i]);
                 // cable_length_collection.push_back(IKresults[1]);
-                // delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
+                delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
                 cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));  
             }
 

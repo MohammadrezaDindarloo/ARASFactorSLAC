@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 10;
+    int size_of_calib_sample = 20;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
         std::default_random_engine generator(std::random_device{}());

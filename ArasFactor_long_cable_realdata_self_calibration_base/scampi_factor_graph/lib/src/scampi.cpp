@@ -12,21 +12,20 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     {
         cable_length_reorder[i] = cable_length[reorder_idx[i]];
     }
-
     NonlinearFactorGraph graph;
     Values initial_estimate;
     double interval_rate = 1.0; //std::pow((1.0/double(interval_rate + 1)),2)
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.205/3.0); // 0.02/3.0
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.1/3.0); // 0.02/3.0
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.5/3.0); // 0.02/3.0
     auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 1.0/3.0
-    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< 30.0 * M_PI/180.0,  30.0 * M_PI/180.0,  30.0 * M_PI/180.0).finished()); // 2.0e-1
-    auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< 5.0/sqrt(3.0)/3.0,  5.0/sqrt(3.0)/3.0,  5.0/sqrt(3.0)/3.0).finished());
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< 5.0 * M_PI/180.0,  5.0 * M_PI/180.0,  5.0 * M_PI/180.0).finished()); // 2.0e-1
+    auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< 11.0/sqrt(3.0)/3.0,  11.0/sqrt(3.0)/3.0,  11.0/sqrt(3.0)/3.0).finished());
 
-    graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length, Sensor_noiseModel_cost1));
-    graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length, Sensor_noiseModel_cost2));
-    graph.add(std::make_shared<IK_factor_graoh_cost3>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length, Sensor_noiseModel_cost3));
+    graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length_reorder, Sensor_noiseModel_cost1));
+    graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length_reorder, Sensor_noiseModel_cost2));
+    graph.add(std::make_shared<IK_factor_graoh_cost3>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, cable_length_reorder, Sensor_noiseModel_cost3));
 
-    // graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', 1), init_estimate_rot, prior_noiseModel_delta_rot);
+    graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', 1), init_estimate_rot, prior_noiseModel_delta_rot);
 
     graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 0), gtsam::Point3(pulley_position_estimate.row(0)), prior_noiseModel_pulley);
     graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 1), gtsam::Point3(pulley_position_estimate.row(1)), prior_noiseModel_pulley);
@@ -47,7 +46,6 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     LevenbergMarquardtOptimizer optimizer(graph, initial_estimate, params);
     Values result_LM = optimizer.optimize();
 
-    std::cout << "inverse kinematic optimization error: " << optimizer.error() << std::endl;
     std::cout << "inverse kinematic optimization error: " << optimizer.error() << std::endl;
     if (optimizer.error() > 1e4)
     {
@@ -187,7 +185,6 @@ void ikSolver(RobotParameters<double> params,
     // initial values for variable 
     double init_estimate_h1 = fh0;
     double init_estimate_v1 = -fv0;
-    // gtsam::Rot3 init_estimate_rot = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
     gtsam::Rot3 init_estimate_rot = gtsam::Rot3();
     // run optimization!
     gtsam::Values optimization_result;
@@ -275,14 +272,14 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
     
     auto prior_noiseModel_offset = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<1e-4, 1e-4, 1e-4, 1e-4).finished());
-    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< (30.0e0 * M_PI/180.0) / 3.0, (30.0e0 * M_PI/180.0) / 3.0, (30.0e0 * M_PI/180.0) / 3.0).finished()); // 1.0e-2
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< (5.0e0 * M_PI/180.0) / 3.0, (5.0e0 * M_PI/180.0) / 3.0, (5.0e0 * M_PI/180.0) / 3.0).finished()); // 1.0e-2
     auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< 5.0/sqrt(3.0)/3.0,  5.0/sqrt(3.0)/3.0,  5.0/sqrt(3.0)/3.0).finished());
 
     // Cost noise models
-    auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.05/3.0, 0.05/3.0, 0.05/3.0, 0.05/3.0).finished());
-    // auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.15/3.0 ); // z     1.5
+    // auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.05/3.0, 0.05/3.0, 0.05/3.0, 0.05/3.0).finished());
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.2/3.0 ); // z     1.5
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // l -||b-a||   
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.05/3.0); // encoder   0.35
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.15/3.0); // encoder   0.35
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;

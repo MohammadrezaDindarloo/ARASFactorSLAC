@@ -12,7 +12,7 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 0.02/3.0
     auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 1.0/3.0
     auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<25.0 * M_PI/180.0, 25.0 * M_PI/180.0, 25.0 * M_PI/180.0).finished()); // 2.0e-1
-    auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<10.0/sqrt(3.0)/3.0, 10.0/sqrt(3.0)/3.0, 10.0/sqrt(3.0)/3.0).finished());
+    auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<5.0/sqrt(3.0)/3.0, 5.0/sqrt(3.0)/3.0, 5.0/sqrt(3.0)/3.0).finished());
 
     graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, Sensor_noiseModel_cost1));
     graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), p_init, rot_init, largest_cable, Sensor_noiseModel_cost2));
@@ -46,10 +46,10 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     }
     *oprimization_result_LM = result_LM;
     
-    std::cout << "p0_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 0)) << std::endl;
-    std::cout << "p1_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 1)) << std::endl;
-    std::cout << "p2_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 2)) << std::endl;
-    std::cout << "p3_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 3)) << std::endl;
+    // std::cout << "p0_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 0)) << std::endl;
+    // std::cout << "p1_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 1)) << std::endl;
+    // std::cout << "p2_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 2)) << std::endl;
+    // std::cout << "p3_inv: " << std::endl << result_LM.at<gtsam::Point3>(Symbol('p', 3)) << std::endl;
 }
 
 // a function to hold parameters and invoke optimizer and back the optimized data

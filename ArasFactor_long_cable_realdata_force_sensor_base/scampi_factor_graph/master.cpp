@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 10;
+    int size_of_calib_sample = 500;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
         std::default_random_engine generator(std::random_device{}());
@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
         std::uniform_real_distribution<double> distribution_offset(0.0, 0.0);
 
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
-        std::normal_distribution<double> pulley_location_distribution(0.0, 10.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 6.0/sqrt(3.0)/3.0);
 
         // robot characteristic
         CableRobotParams robot_params(0.7100703113867337, 333.54);
@@ -224,6 +224,10 @@ int main(int argc, char *argv[])
         std::cout << "Offset D calibration in  mm: " << error_offset_d << std::endl;   
         std::cout << "sum of offset error  after  calibration  in  mm: " << sum_offset_error_optimized << std::endl;
         std::cout << "Interval: " << interval << std::endl;
+        // std::cout << "init A in  mm: " << (Eigen::Vector3d(pulley_position_estimate.row(0)) - Pulley_a).norm()  << std::endl;   
+        // std::cout << "init B in  mm: " << (Eigen::Vector3d(pulley_position_estimate.row(1)) - Pulley_b).norm() << std::endl;   
+        // std::cout << "init C in  mm: " << (Eigen::Vector3d(pulley_position_estimate.row(2)) - Pulley_c).norm() << std::endl;   
+        // std::cout << "init D in  mm: " << (Eigen::Vector3d(pulley_position_estimate.row(3)) - Pulley_d).norm() << std::endl;
         std::cout << "-----------------Calibration Reults------------------------" << std::endl << std::endl;
 
         calibration_result.push_back({error_pulley_optimized_a, error_pulley_optimized_b, error_pulley_optimized_c, error_pulley_optimized_d, sum_pulley_error_optimized,

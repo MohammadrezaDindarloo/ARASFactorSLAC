@@ -243,16 +243,17 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     odometry_noise_gain_prior = odometry_noise_gain_prior * all_noise_activation;
     std::normal_distribution<double> poistion_noise_prior(0.0, odometry_noise_gain_prior * (0.01/sqrt(3.0))/3.0); // 1 mm in position error
     std::normal_distribution<double> orientation_noise_prior(0.0, odometry_noise_gain_prior * (1.0/sqrt(3.0) * M_PI / 180.0)/3.0); // 0.1 degree in orientation error
-    double translationnoise_prior = (0.010/sqrt(3.0))/3.0; //in meter 
-    double orientationnoise_prior = (1.0/sqrt(3.0) * M_PI / 180.0)/3.0; // in degree and convert to radian
+    double translationnoise_prior = (0.02/sqrt(3.0))/3.0; //in meter 
+    double orientationnoise_prior = (1.5/sqrt(3.0) * M_PI / 180.0)/3.0; // in degree and convert to radian
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
     
     // Cost noise models ****************************************************************************************************************************************************************
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 2.0/3.0 ); // z        2.0/3.0
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 40.0/3.0 ); // z        2.0/3.0
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 2.0/3.0); // (Rigid cable, without sagging)    
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.2/3.0); // encoder   0.2/3.0
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 5.0/3.0); // encoder   0.2/3.0
 
-    auto Force_Sensor_noiseModel = gtsam::noiseModel::Isotropic::Sigma(1, 1.0/3.0); //  1.0
+    auto Force_Sensor_noiseModel = gtsam::noiseModel::Isotropic::Sigma(1, 40.0/3.0); //  1.0
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< (30.0 * M_PI/180.0) / 3.0, (30.0 * M_PI/180.0) / 3.0, (30.0 * M_PI/180.0) / 3.0).finished()); // 1.0e-2
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;
@@ -267,6 +268,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
         
         if(rigid_cable)
         {
+            std::cout << "******** rigid cable ********" << std::endl;
             graph.add(std::make_shared<FK_factor_graoh_cost2>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), Symbol('o', 0), enc_data, Sensor_noiseModel_cost2));
         }
         else
@@ -325,10 +327,12 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
             }
         }
 
+        // graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i]), prior_noiseModel_delta_rot);
+
         initial_estimate.insert(Symbol('h', i), cable_forces_collection[i][0]);
         initial_estimate.insert(Symbol('v', i), cable_forces_collection[i][1]);
         initial_estimate.insert(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i])); 
-        initial_estimate.insert(Symbol('X', i), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i]) * orientationNoise, p_platform_collection[i] + PositionNoise));
+        initial_estimate.insert(Symbol('X', i), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i]), p_platform_collection[i]));
     }
 
     if(rigid_cable)
@@ -343,7 +347,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     initial_estimate.insert(Symbol('p', 2), gtsam::Point3(pulley_position_estimate.row(2)));
     initial_estimate.insert(Symbol('p', 3), gtsam::Point3(pulley_position_estimate.row(3)));
 
-    initial_estimate.insert(Symbol('o', 0), gtsam::Vector4(150.0, 150.0, 150.0, 150.0));
+    initial_estimate.insert(Symbol('o', 0), gtsam::Vector4(170.0, 170.0, 170.0, 170.0));
 
     gtsam::LevenbergMarquardtParams params; 
     std::cout << std::endl;

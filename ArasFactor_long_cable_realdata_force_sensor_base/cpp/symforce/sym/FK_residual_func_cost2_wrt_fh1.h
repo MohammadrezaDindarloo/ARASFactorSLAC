@@ -24,6 +24,7 @@ namespace sym {
  *     DeltaRot: Rot3
  *     TransformationMatrix: Pose3
  *     encoder: Matrix41
+ *     offset: Matrix41
  *     p_a: Matrix31
  *     p_b: Matrix31
  *     p_c: Matrix31
@@ -37,9 +38,9 @@ template <typename Scalar>
 Eigen::Matrix<Scalar, 4, 1> FkResidualFuncCost2WrtFh1(
     const Scalar fh1, const Scalar fv1, const sym::Rot3<Scalar>& DeltaRot,
     const sym::Pose3<Scalar>& TransformationMatrix, const Eigen::Matrix<Scalar, 4, 1>& encoder,
-    const Eigen::Matrix<Scalar, 3, 1>& p_a, const Eigen::Matrix<Scalar, 3, 1>& p_b,
-    const Eigen::Matrix<Scalar, 3, 1>& p_c, const Eigen::Matrix<Scalar, 3, 1>& p_d,
-    const Scalar epsilon) {
+    const Eigen::Matrix<Scalar, 4, 1>& offset, const Eigen::Matrix<Scalar, 3, 1>& p_a,
+    const Eigen::Matrix<Scalar, 3, 1>& p_b, const Eigen::Matrix<Scalar, 3, 1>& p_c,
+    const Eigen::Matrix<Scalar, 3, 1>& p_d, const Scalar epsilon) {
   // Total ops: 0
 
   // Unused inputs
@@ -48,6 +49,7 @@ Eigen::Matrix<Scalar, 4, 1> FkResidualFuncCost2WrtFh1(
   (void)DeltaRot;
   (void)TransformationMatrix;
   (void)encoder;
+  (void)offset;
   (void)p_a;
   (void)p_b;
   (void)p_c;

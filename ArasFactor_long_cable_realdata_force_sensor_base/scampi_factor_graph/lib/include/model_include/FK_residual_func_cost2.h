@@ -24,6 +24,7 @@ namespace sym {
  *     DeltaRot: Rot3
  *     TransformationMatrix: Pose3
  *     encoder: Matrix41
+ *     offset: Matrix41
  *     p_a: Matrix31
  *     p_b: Matrix31
  *     p_c: Matrix31
@@ -37,10 +38,10 @@ template <typename Scalar>
 Eigen::Matrix<Scalar, 4, 1> FkResidualFuncCost2(
     const Scalar fh1, const Scalar fv1, const sym::Rot3<Scalar>& DeltaRot,
     const sym::Pose3<Scalar>& TransformationMatrix, const Eigen::Matrix<Scalar, 4, 1>& encoder,
-    const Eigen::Matrix<Scalar, 3, 1>& p_a, const Eigen::Matrix<Scalar, 3, 1>& p_b,
-    const Eigen::Matrix<Scalar, 3, 1>& p_c, const Eigen::Matrix<Scalar, 3, 1>& p_d,
-    const Scalar epsilon) {
-  // Total ops: 138
+    const Eigen::Matrix<Scalar, 4, 1>& offset, const Eigen::Matrix<Scalar, 3, 1>& p_a,
+    const Eigen::Matrix<Scalar, 3, 1>& p_b, const Eigen::Matrix<Scalar, 3, 1>& p_c,
+    const Eigen::Matrix<Scalar, 3, 1>& p_d, const Scalar epsilon) {
+  // Total ops: 142
 
   // Unused inputs
   (void)fh1;
@@ -101,22 +102,22 @@ Eigen::Matrix<Scalar, 4, 1> FkResidualFuncCost2(
   // Output terms (1)
   Eigen::Matrix<Scalar, 4, 1> _res;
 
-  _res(0, 0) =
-      -encoder(0, 0) + std::sqrt(Scalar(std::pow(Scalar(-_tmp16 - _tmp5 + p_a(1, 0)), Scalar(2)) +
-                                        std::pow(Scalar(-_tmp20 - _tmp24 + p_a(2, 0)), Scalar(2)) +
-                                        std::pow(Scalar(-_tmp26 - _tmp29 + p_a(0, 0)), Scalar(2))));
-  _res(1, 0) =
-      -encoder(1, 0) + std::sqrt(Scalar(std::pow(Scalar(-_tmp19 - _tmp24 + p_b(2, 0)), Scalar(2)) +
-                                        std::pow(Scalar(-_tmp26 - _tmp30 + p_b(0, 0)), Scalar(2)) +
-                                        std::pow(Scalar(-_tmp31 - _tmp5 + p_b(1, 0)), Scalar(2))));
-  _res(2, 0) =
-      -encoder(2, 0) + std::sqrt(Scalar(std::pow(Scalar(-_tmp19 - _tmp32 + p_c(2, 0)), Scalar(2)) +
-                                        std::pow(Scalar(-_tmp25 - _tmp30 + p_c(0, 0)), Scalar(2)) +
-                                        std::pow(Scalar(-_tmp31 - _tmp4 + p_c(1, 0)), Scalar(2))));
-  _res(3, 0) =
-      -encoder(3, 0) + std::sqrt(Scalar(std::pow(Scalar(-_tmp16 - _tmp4 + p_d(1, 0)), Scalar(2)) +
-                                        std::pow(Scalar(-_tmp20 - _tmp32 + p_d(2, 0)), Scalar(2)) +
-                                        std::pow(Scalar(-_tmp25 - _tmp29 + p_d(0, 0)), Scalar(2))));
+  _res(0, 0) = -encoder(0, 0) + offset(0, 0) +
+               std::sqrt(Scalar(std::pow(Scalar(-_tmp16 - _tmp5 + p_a(1, 0)), Scalar(2)) +
+                                std::pow(Scalar(-_tmp20 - _tmp24 + p_a(2, 0)), Scalar(2)) +
+                                std::pow(Scalar(-_tmp26 - _tmp29 + p_a(0, 0)), Scalar(2))));
+  _res(1, 0) = -encoder(1, 0) + offset(1, 0) +
+               std::sqrt(Scalar(std::pow(Scalar(-_tmp19 - _tmp24 + p_b(2, 0)), Scalar(2)) +
+                                std::pow(Scalar(-_tmp26 - _tmp30 + p_b(0, 0)), Scalar(2)) +
+                                std::pow(Scalar(-_tmp31 - _tmp5 + p_b(1, 0)), Scalar(2))));
+  _res(2, 0) = -encoder(2, 0) + offset(2, 0) +
+               std::sqrt(Scalar(std::pow(Scalar(-_tmp19 - _tmp32 + p_c(2, 0)), Scalar(2)) +
+                                std::pow(Scalar(-_tmp25 - _tmp30 + p_c(0, 0)), Scalar(2)) +
+                                std::pow(Scalar(-_tmp31 - _tmp4 + p_c(1, 0)), Scalar(2))));
+  _res(3, 0) = -encoder(3, 0) + offset(3, 0) +
+               std::sqrt(Scalar(std::pow(Scalar(-_tmp16 - _tmp4 + p_d(1, 0)), Scalar(2)) +
+                                std::pow(Scalar(-_tmp20 - _tmp32 + p_d(2, 0)), Scalar(2)) +
+                                std::pow(Scalar(-_tmp25 - _tmp29 + p_d(0, 0)), Scalar(2))));
 
   return _res;
 }  // NOLINT(readability/fn_size)

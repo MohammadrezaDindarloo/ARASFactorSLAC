@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 20;
+    int size_of_calib_sample = 10;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
         std::default_random_engine generator(std::random_device{}());
@@ -130,10 +130,11 @@ int main(int argc, char *argv[])
             rot_init_platform_collection.push_back(rot_init);
 
             gtsam::Rot3 delta_rot_;
-            double pitch_deltaRot = 0.01 * M_PI/180.0;
-            double roll_deltaRot = 0.01 * M_PI/180.0;
-            double yaw_deltaRot = 0.01 * M_PI/180.0;
-            Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot)));
+            double pitch_deltaRot = 0.0 * M_PI/180.0;
+            double roll_deltaRot = 0.0 * M_PI/180.0;
+            double yaw_deltaRot = 0.0 * M_PI/180.0;
+            Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3()); 
+            // Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot))); 
             delta_rot_platform_collection.push_back(deltaRot);
         }
 
@@ -184,7 +185,7 @@ int main(int argc, char *argv[])
             first_cable_force_magnitude.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]).norm());
             double fh0, fv0;
             computeInitCableForcesCalibration<double>(&fh0, &fv0, p_platform_collection[i], rot_init_platform_collection[i], params_calibration);
-            cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>({std::abs(fh0), std::abs(fv0)})); 
+            cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>({fh0, -fv0})); 
         }
 
         std::vector<Eigen::Matrix<double, 5, 1>> pulley_perturbation_result;
@@ -212,10 +213,10 @@ int main(int argc, char *argv[])
         std::cout << "Pulley D calibration in  mm: " << error_pulley_optimized_d << std::endl;   
         std::cout << "sum of pulley error  after  calibration  in  mm: " << sum_pulley_error_optimized << std::endl;
 
-        double error_offset_a = std::abs(double(FKresults[1](0)) - cable_offset[0]) * 1000;
-        double error_offset_b = std::abs(double(FKresults[1](1)) - cable_offset[1]) * 1000;
-        double error_offset_c = std::abs(double(FKresults[1](2)) - cable_offset[2]) * 1000;
-        double error_offset_d = std::abs(double(FKresults[1](3)) - cable_offset[3]) * 1000;
+        double error_offset_a = std::abs(double(FKresults[1](0)) - cable_length_collection[0][0]) * 1000;
+        double error_offset_b = std::abs(double(FKresults[1](1)) - cable_length_collection[0][1]) * 1000;
+        double error_offset_c = std::abs(double(FKresults[1](2)) - cable_length_collection[0][2]) * 1000;
+        double error_offset_d = std::abs(double(FKresults[1](3)) - cable_length_collection[0][3]) * 1000;
         double sum_offset_error_optimized = error_offset_a + error_offset_b + error_offset_c + error_offset_d;
         std::cout << "Offset A calibration in  mm: " << error_offset_a << std::endl;   
         std::cout << "Offset B calibration in  mm: " << error_offset_b << std::endl;   

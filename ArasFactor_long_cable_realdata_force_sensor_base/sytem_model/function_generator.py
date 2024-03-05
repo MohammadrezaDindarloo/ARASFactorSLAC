@@ -4015,7 +4015,7 @@ Ee_d = sf.Vector3(-0.21, 0.21, -0.011)
 r_to_cog = sf.Matrix([0, 0, -0.12])
 
 g_c = 0.7100703113867337
-f_g = 34 * 9.81
+f_g = 333.54
 
 cale_robo_param_forward = CableRobotParams(g_c, f_g)
 cale_robo_param_forward .setPulleyPoses(Pulley_a, Pulley_b, Pulley_c, Pulley_d)

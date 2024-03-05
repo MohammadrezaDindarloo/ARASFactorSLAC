@@ -3,18 +3,14 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 500;
+    int size_of_calib_sample = 50;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
         std::default_random_engine generator(std::random_device{}());
-        std::uniform_real_distribution<double> distribution_x(-10.0, 10.0);
-        std::uniform_real_distribution<double> distribution_y(-10.0, 10.0);
-        std::uniform_real_distribution<double> distribution_z(-5.0, 5.0);
-
         std::uniform_real_distribution<double> distribution_offset(0.0, 0.0);
 
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
-        std::normal_distribution<double> pulley_location_distribution(0.0, 6.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 4.0/sqrt(3.0)/3.0);
 
         // robot characteristic
         CableRobotParams robot_params(0.7100703113867337, 333.54);
@@ -133,8 +129,8 @@ int main(int argc, char *argv[])
             double pitch_deltaRot = 0.0 * M_PI/180.0;
             double roll_deltaRot = 0.0 * M_PI/180.0;
             double yaw_deltaRot = 0.0 * M_PI/180.0;
-            Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3()); 
             // Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot))); 
+            Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3()); 
             delta_rot_platform_collection.push_back(deltaRot);
         }
 
@@ -224,10 +220,25 @@ int main(int argc, char *argv[])
         std::cout << "Offset D calibration in  mm: " << error_offset_d << std::endl;   
         std::cout << "sum of offset error  after  calibration  in  mm: " << sum_offset_error_optimized << std::endl;
         std::cout << "Interval: " << interval << std::endl;
-        // std::cout << "init A in  mm: " << (Eigen::Vector3d(pulley_position_estimate.row(0)) - Pulley_a).norm()  << std::endl;   
-        // std::cout << "init B in  mm: " << (Eigen::Vector3d(pulley_position_estimate.row(1)) - Pulley_b).norm() << std::endl;   
-        // std::cout << "init C in  mm: " << (Eigen::Vector3d(pulley_position_estimate.row(2)) - Pulley_c).norm() << std::endl;   
-        // std::cout << "init D in  mm: " << (Eigen::Vector3d(pulley_position_estimate.row(3)) - Pulley_d).norm() << std::endl;
+        // std::cout << std::endl << "pulley optimized: " << FKresults[0] << std::endl;
+
+        // // Calculate the averages for each column
+        // std::vector<double> column_sums(real_data_lcat[0].size(), 0.0);
+        // for (size_t i = 0; i < real_data_lcat.size(); ++i) {
+        //     for (size_t j = 0; j < real_data_lcat[i].size(); ++j) {
+        //         column_sums[j] += real_data_lcat[i][j];
+        //     }
+        // }
+        // size_t num_rows = real_data_lcat.size();
+        // std::cout << "The average of cable 1: " << column_sums[0] / num_rows << std::endl;
+        // std::cout << "The average of cable 2: " << column_sums[1] / num_rows << std::endl;
+        // std::cout << "The average of cable 3: " << column_sums[2] / num_rows << std::endl;
+        // std::cout << "The average of cable 4: " << column_sums[3] / num_rows << std::endl;
+
+        // std::cout << "transition pulley 1: " << Eigen::Vector3d(FKresults[0].row(0))-Pulley_a << std::endl;   
+        // std::cout << "transition pulley 2: " << Eigen::Vector3d(FKresults[0].row(1))-Pulley_b << std::endl;   
+        // std::cout << "transition pulley 3: " << Eigen::Vector3d(FKresults[0].row(2))-Pulley_c << std::endl;   
+        // std::cout << "transition pulley 4: " << Eigen::Vector3d(FKresults[0].row(3))-Pulley_d << std::endl;   
         std::cout << "-----------------Calibration Reults------------------------" << std::endl << std::endl;
 
         calibration_result.push_back({error_pulley_optimized_a, error_pulley_optimized_b, error_pulley_optimized_c, error_pulley_optimized_d, sum_pulley_error_optimized,

@@ -11,7 +11,7 @@ void inverse_kinematic_factor_graph_optimizer(Eigen::Vector3d p_init, Eigen::Mat
     auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.02/3.0); // 0.02/3.0
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.02/3.0); // 0.02/3.0
     auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 1.0/3.0); // 1.0/3.0
-    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<2.0e-1 * M_PI/180.0, 2.0e-1 * M_PI/180.0, 2.0e-1 * M_PI/180.0).finished()); // 2.0e-1
+    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<<5.0e-1 * M_PI/180.0, 5.0e-1 * M_PI/180.0, 5.0e-1 * M_PI/180.0).finished()); // 2.0e-1
 
     graph.add(std::make_shared<IK_factor_graoh_cost1>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost1));
     graph.add(std::make_shared<IK_factor_graoh_cost2>(Symbol('h', 1), Symbol('v', 1), Symbol('r', 1), p_init, rot_init, largest_cable, Sensor_noiseModel_cost2));
@@ -218,7 +218,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     // Encoder noise model
     double encoder_noise_gain = 1.0;
     encoder_noise_gain = encoder_noise_gain * all_noise_activation;
-    std::normal_distribution<double> encoder_noise(0.0, encoder_noise_gain * (0.01)/3.0); // 0.1 degree in orientation error
+    std::normal_distribution<double> encoder_noise(0.0, encoder_noise_gain * (0.005)/3.0); // 0.1 degree in orientation error
 
     // UWB noise model
     double uwb_noise_gain = 1.0;
@@ -241,19 +241,17 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     // Noise model for prior pose
     double odometry_noise_gain_prior = 1.0;
     odometry_noise_gain_prior = odometry_noise_gain_prior * all_noise_activation;
-    std::normal_distribution<double> poistion_noise_prior(0.0, odometry_noise_gain_prior * (0.01/sqrt(3.0))/3.0); // 1 mm in position error
-    std::normal_distribution<double> orientation_noise_prior(0.0, odometry_noise_gain_prior * (1.0/sqrt(3.0) * M_PI / 180.0)/3.0); // 0.1 degree in orientation error
-    double translationnoise_prior = (0.02/sqrt(3.0))/3.0; //in meter 
-    double orientationnoise_prior = (1.5/sqrt(3.0) * M_PI / 180.0)/3.0; // in degree and convert to radian
+    std::normal_distribution<double> poistion_noise_prior(0.0, odometry_noise_gain_prior * (0.005/sqrt(3.0))/3.0); // 1 mm in position error
+    std::normal_distribution<double> orientation_noise_prior(0.0, odometry_noise_gain_prior * (0.5/sqrt(3.0) * M_PI / 180.0)/3.0); // 0.1 degree in orientation error
+    double translationnoise_prior = (0.006/sqrt(3.0))/3.0; //in meter 
+    double orientationnoise_prior = (0.55/sqrt(3.0) * M_PI / 180.0)/3.0; // in degree and convert to radian
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
     
     // Cost noise models ****************************************************************************************************************************************************************
-    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 40.0/3.0 ); // z        2.0/3.0
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.5/3.0 ); // z        2.0/3.0
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 2.0/3.0); // (Rigid cable, without sagging)    
-    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 5.0/3.0); // encoder   0.2/3.0
-
-    auto Force_Sensor_noiseModel = gtsam::noiseModel::Isotropic::Sigma(1, 40.0/3.0); //  1.0
-    auto prior_noiseModel_delta_rot = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< (30.0 * M_PI/180.0) / 3.0, (30.0 * M_PI/180.0) / 3.0, (30.0 * M_PI/180.0) / 3.0).finished()); // 1.0e-2
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.2/3.0); // encoder   0.2/3.0
+    auto Force_Sensor_noiseModel = gtsam::noiseModel::Isotropic::Sigma(1, 1.0/3.0); //  1.0
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;
@@ -326,8 +324,6 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
                 initial_estimate.insert(Symbol('X', i+1), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i+1]), p_platform_collection[i+1]));
             }
         }
-
-        // graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i]), prior_noiseModel_delta_rot);
 
         initial_estimate.insert(Symbol('h', i), cable_forces_collection[i][0]);
         initial_estimate.insert(Symbol('v', i), cable_forces_collection[i][1]);

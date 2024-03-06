@@ -345,7 +345,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
             }
         }
 
-        graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i]), prior_noiseModel_delta_rot);
+        // graph.emplace_shared<gtsam::PriorFactor<gtsam::Rot3>>(Symbol('r', i), EigenMatrixToGtsamRot3(delta_rot_platform_collection[i]), prior_noiseModel_delta_rot);
 
         initial_estimate.insert(Symbol('h', i), cable_forces_collection[i][0]);
         initial_estimate.insert(Symbol('v', i), cable_forces_collection[i][1]);

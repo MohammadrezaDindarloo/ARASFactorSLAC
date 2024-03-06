@@ -136,9 +136,9 @@ int main(int argc, char *argv[])
                 Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);
                 rot_init_platform_collection.push_back(rot_init);
 
-                gtsam::Rot3 delta_rot_;
-                Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3());
-                delta_rot_platform_collection.push_back(deltaRot);
+                // gtsam::Rot3 delta_rot_;
+                // Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3());
+                // delta_rot_platform_collection.push_back(deltaRot);
             }
 
             std::ifstream file_lcat("./dataset/lc_meas_cpp_test.csv");
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
                 // std::cout << "dif_forces: " << IKresults[2].col(0).norm()-first_cable_force_magnitude[i] << std::endl;
                 force_differences.push_back(IKresults[2].col(0).norm()-first_cable_force_magnitude[i]);
                 // cable_length_collection.push_back(IKresults[1]);
-                // delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
+                delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
                 cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));  
             }
 

@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
         pulley_position_ground_truth.row(3) = (Eigen::Vector3d (Pulley_d[0] + 0.0, Pulley_d[1] + 0.0, Pulley_d[2] + 0.0));
       
         std::vector<gtsam::Vector10> calibration_result;
-        int calibration_interval = 5;
+        int calibration_interval = 1;
         for (int inner_interval = 0; inner_interval < calibration_interval; inner_interval++) 
         {          
             std::uniform_real_distribution<double> distribution_offset(0.0, 0.0);

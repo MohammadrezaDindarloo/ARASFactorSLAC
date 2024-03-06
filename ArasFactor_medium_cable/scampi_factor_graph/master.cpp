@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 1;
+    int size_of_calib_sample = 500;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
         bool simulation_mode_use_recordyn_data = true;
@@ -19,6 +19,7 @@ int main(int argc, char *argv[])
 
         // robot characteristic
         CableRobotParams robot_params(0.1034955, 43.164);
+        CableRobotParams robot_params_calibration(0.1034955, 43.164);
 
         Eigen::Vector3d Pulley_a(-1.9874742031097412, -8.319656372070312, 8.471846580505371);
         Eigen::Vector3d Pulley_b(2.5193355532036756, -8.388501748709967, 8.469020753679201);
@@ -33,6 +34,8 @@ int main(int argc, char *argv[])
         pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0] + pulley_location_distribution(generator), Pulley_c[1] + pulley_location_distribution(generator), Pulley_c[2] + pulley_location_distribution(generator)));
         pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0] + pulley_location_distribution(generator), Pulley_d[1] + pulley_location_distribution(generator), Pulley_d[2] + pulley_location_distribution(generator)));
         
+        robot_params_calibration.setPulleyPoses(pulley_position_estimate.row(0), pulley_position_estimate.row(1), pulley_position_estimate.row(2), pulley_position_estimate.row(3));
+
         std::vector<double> cable_offset =  {distribution_offset(generator), distribution_offset(generator), distribution_offset(generator), distribution_offset(generator)};
 
         Eigen::Vector3d Ee_a(-0.21 , -0.21 , -0.011);  
@@ -40,15 +43,36 @@ int main(int argc, char *argv[])
         Eigen::Vector3d Ee_c(0.21  ,  0.21 , -0.011);
         Eigen::Vector3d Ee_d(-0.21 ,  0.21 , -0.011);
         robot_params.setEEAnchors(Ee_a, Ee_b, Ee_c, Ee_d);
+        robot_params_calibration.setEEAnchors(Ee_a, Ee_b, Ee_c, Ee_d);
 
         Eigen::Vector3d r_to_cog(0, 0, -0.12);
         robot_params.setCog(r_to_cog);
+        robot_params_calibration.setCog(r_to_cog);
 
         std::vector<Eigen::Matrix<double, 4, 1>> cable_length_collection;
         std::vector<Eigen::Matrix<double, 3, 1>> p_platform_collection;
         std::vector<Eigen::Matrix<double, 3, 3>> rot_init_platform_collection;
         std::vector<Eigen::Matrix<double, 3, 3>> delta_rot_platform_collection;
         std::vector<Eigen::Matrix<double, 2, 1>> cable_forces_collection;
+        std::vector<double> first_cable_force_magnitude;
+
+        // create instance of robot params base on initial guess of pulley for calibration presedure
+        RobotParameters<double> params_calibration;
+        params_calibration.f_g = robot_params_calibration.f_g_;
+        params_calibration.g_c = robot_params_calibration.g_c_;
+
+        params_calibration.ef_points.clear();
+        params_calibration.pulleys.clear();
+
+        params_calibration.pulleys.push_back(robot_params_calibration.p1_);
+        params_calibration.pulleys.push_back(robot_params_calibration.p2_);
+        params_calibration.pulleys.push_back(robot_params_calibration.p3_);
+        params_calibration.pulleys.push_back(robot_params_calibration.p4_);
+
+        params_calibration.ef_points.push_back(robot_params_calibration.b1_);
+        params_calibration.ef_points.push_back(robot_params_calibration.b2_);
+        params_calibration.ef_points.push_back(robot_params_calibration.b3_);
+        params_calibration.ef_points.push_back(robot_params_calibration.b4_);
 
         if(simulation_mode_use_recordyn_data)
         {
@@ -197,28 +221,31 @@ int main(int argc, char *argv[])
                                                                 real_data_lcat[i][2], real_data_lcat[i][3]));
             }
 
-            // std::ifstream file_forces("./dataset/forces_cpp_test.csv");
-            // std::vector<std::vector<double>> real_data_forces;
-            // if (file_forces) {
-            //     std::string line;
-            //     while (getline(file_forces, line)) {
-            //         std::stringstream ss(line);
-            //         std::vector<double> row;
-            //         std::string val;
-            //         while (getline(ss, val, ',')) {
-            //             row.push_back(stod(val));
-            //         }
-            //         real_data_forces.push_back(row);
-            //     }
-            // std::cout << "Number of force sensor data: " << real_data_forces.size() << std::endl;
-            // } else {
-            //     std::cout << "Unable to open file." << std::endl;
-            // }
-            // // Rewrite the data in it's object
-            // for (size_t i = 0; i < real_data_forces.size(); i++)
-            // {   
-            //     cable_forces_collection.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]));
-            // }
+            std::ifstream file_forces("./dataset/forces_cpp_test.csv");
+            std::vector<std::vector<double>> real_data_forces;
+            if (file_forces) {
+                std::string line;
+                while (getline(file_forces, line)) {
+                    std::stringstream ss(line);
+                    std::vector<double> row;
+                    std::string val;
+                    while (getline(ss, val, ',')) {
+                        row.push_back(stod(val));
+                    }
+                    real_data_forces.push_back(row);
+                }
+            std::cout << "Number of force sensor data: " << real_data_forces.size() << std::endl;
+            } else {
+                std::cout << "Unable to open file." << std::endl;
+            }
+            // Rewrite the data in it's object
+            for (size_t i = 0; i < real_data_forces.size(); i++)
+            {   
+                first_cable_force_magnitude.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]).norm());
+                double fh0, fv0;
+                computeInitCableForcesCalibration<double>(&fh0, &fv0, p_platform_collection[i], rot_init_platform_collection[i], params_calibration);
+                cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>({fh0, -fv0})); 
+            }
 
             // start inverse optimization for data generation
             for (size_t i = 0; i < p_platform_collection.size(); i++)
@@ -226,13 +253,14 @@ int main(int argc, char *argv[])
                 Eigen::Vector3d p_endeffector = p_platform_collection[i];
                 Eigen::Matrix3d rot_init = rot_init_platform_collection[i];
                 std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params, rot_init, p_endeffector);
-                gtsam::Rot3 rot_platform = EigenMatrixToGtsamRot3(rot_init.inverse() * IKresults[0]);    
-                std::cout << std::endl << "rot_platform pitch: " << std::endl << rot_platform.pitch() * 180.0/M_PI << std::endl;
-                std::cout << std::endl << "rot_platform roll: " << std::endl << rot_platform.roll() * 180.0/M_PI << std::endl;
-                std::cout << std::endl << "rot_platform yaw: " << std::endl << rot_platform.yaw() * 180.0/M_PI << std::endl;
-                std::cout << std::endl << "p_platform: " << std::endl << p_platform_collection[i] << std::endl;
-                std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
+                // gtsam::Rot3 rot_platform = EigenMatrixToGtsamRot3(rot_init.inverse() * IKresults[0]);    
+                // std::cout << std::endl << "rot_platform pitch: " << std::endl << rot_platform.pitch() * 180.0/M_PI << std::endl;
+                // std::cout << std::endl << "rot_platform roll: " << std::endl << rot_platform.roll() * 180.0/M_PI << std::endl;
+                // std::cout << std::endl << "rot_platform yaw: " << std::endl << rot_platform.yaw() * 180.0/M_PI << std::endl;
+                // std::cout << std::endl << "p_platform: " << std::endl << p_platform_collection[i] << std::endl;
+                // std::cout << std::endl << "l_cat: " << std::endl << IKresults[1] << std::endl;
                 // std::cout << std::endl << "cable_forces: " << std::endl << IKresults[2] << std::endl;
+                // std::cout << std::endl << "cable_forces1 norm: " << std::endl << IKresults[2].col(0).norm() - first_cable_force_magnitude[i]<< std::endl;
                 // std::cout << std::endl << "c1: " << std::endl << IKresults[3] << std::endl;
                 // std::cout << std::endl << "c2: " << std::endl << IKresults[4] << std::endl;
                 // std::cout << std::endl << "b_in_w: " << std::endl << IKresults[5] << std::endl;
@@ -240,12 +268,12 @@ int main(int argc, char *argv[])
                 // std::cout << std::endl << "sagging_2: " << std::endl << IKresults[1].col(0)[1] - (IKresults[5].col(1) - Pulley_b).norm() << std::endl;
                 // std::cout << std::endl << "sagging_3: " << std::endl << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;
                 // std::cout << std::endl << "sagging_4: " << std::endl << IKresults[1].col(0)[3] - (IKresults[5].col(3) - Pulley_d).norm() << std::endl;
-                std::cout << std::endl << "dif_l_cat: " << std::endl << IKresults[1]-cable_length_collection[i] << std::endl;
+                // std::cout << std::endl << "dif_l_cat: " << std::endl << IKresults[1]-cable_length_collection[i] << std::endl;
 
                 // rot_init_platform_collection.push_back(rot_init);
                 // delta_rot_platform_collection.push_back(rot_init.inverse() * IKresults[0]);
                 // cable_length_collection.push_back(IKresults[1]);
-                cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));
+                // cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));
             }
         }
 
@@ -290,7 +318,7 @@ int main(int argc, char *argv[])
         std::vector<gtsam::Pose3> Optimized_pose;
         std::vector<gtsam::Pose3> GT_pose;
         // start forward optimization
-        std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, cable_offset, cable_length_collection, cable_forces_collection, p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, pulley_position_estimate, &Optimized_pose, &GT_pose);
+        std::vector<MatrixXd> FKresults = FK_Factor_Graph_Optimization(robot_params, cable_offset, cable_length_collection, cable_forces_collection, p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, pulley_position_estimate, first_cable_force_magnitude, &Optimized_pose, &GT_pose);
 
         std::cout << std::endl << "-----------------Calibration Reults------------------------" << std::endl;
         double error_pulley_estimated_a = (Eigen::Vector3d(pulley_position_estimate.row(0)) - Pulley_a).norm() * 1000;
@@ -311,10 +339,10 @@ int main(int argc, char *argv[])
         std::cout << "Pulley D calibration in  mm: " << error_pulley_optimized_d << std::endl;   
         std::cout << "sum of pulley error  after  calibration  in  mm: " << sum_pulley_error_optimized << std::endl;
 
-        double error_offset_a = std::abs(double(FKresults[1](0)) - cable_offset[0]) * 1000;
-        double error_offset_b = std::abs(double(FKresults[1](1)) - cable_offset[1]) * 1000;
-        double error_offset_c = std::abs(double(FKresults[1](2)) - cable_offset[2]) * 1000;
-        double error_offset_d = std::abs(double(FKresults[1](3)) - cable_offset[3]) * 1000;
+        double error_offset_a = std::abs(double(FKresults[1](0)) - cable_length_collection[0][0]) * 1000;
+        double error_offset_b = std::abs(double(FKresults[1](1)) - cable_length_collection[0][1]) * 1000;
+        double error_offset_c = std::abs(double(FKresults[1](2)) - cable_length_collection[0][2]) * 1000;
+        double error_offset_d = std::abs(double(FKresults[1](3)) - cable_length_collection[0][3]) * 1000;
         double sum_offset_error_optimized = error_offset_a + error_offset_b + error_offset_c + error_offset_d;
         std::cout << "Offset A calibration in  mm: " << error_offset_a << std::endl;   
         std::cout << "Offset B calibration in  mm: " << error_offset_b << std::endl;   

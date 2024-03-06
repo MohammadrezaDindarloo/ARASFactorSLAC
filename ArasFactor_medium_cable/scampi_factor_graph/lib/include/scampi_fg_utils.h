@@ -251,3 +251,20 @@ void computeInitCableForces(T *fh0,
     *fh0 = abs(*fv0)/tan(alpha);
 }
 
+// Compute an initial value for the cable forces for the calibration solver
+template<typename T>
+void computeInitCableForcesCalibration( T *fh0, 
+                                        T *fv0, 
+                                        Eigen::Matrix<T,3,1> p_platform, 
+                                        Eigen::Matrix<T,3,3> rot_platform, 
+                                        RobotParameters<T> robotparams_)
+{
+    Eigen::Matrix<T, 3, 1> b_w = p_platform + rot_platform*robotparams_.ef_points[0];
+    Eigen::Matrix<T, 3, 1> sx = b_w - robotparams_.pulleys[0];
+    sx[2] = 0;
+    sx = sx/sx.norm();
+    double alpha = acos((sx.transpose()*(b_w-robotparams_.pulleys[0]))[0]/(b_w-robotparams_.pulleys[0]).norm());
+    *fv0 = 1*(-robotparams_.f_g)/4.0;
+    *fh0 = std::abs(*fv0)/tan(alpha);
+}
+

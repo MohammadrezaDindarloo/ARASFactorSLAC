@@ -106,6 +106,7 @@ std::vector<MatrixXd> FK_Factor_Graph_Optimization( CableRobotParams robot_param
                                                     std::vector<Eigen::Matrix<double, 3, 3>> rot_init_platform_collection, 
                                                     std::vector<Eigen::Matrix<double, 3, 3>> delta_rot_platform_collection,
                                                     Eigen::Matrix<double, 4, 3> pulley_position_estimate,
+                                                    std::vector<double> first_cable_force_magnitude,
                                                     std::vector<gtsam::Pose3> *Optimized_pose,
                                                     std::vector<gtsam::Pose3> *GT_pose)
 {
@@ -130,7 +131,7 @@ std::vector<MatrixXd> FK_Factor_Graph_Optimization( CableRobotParams robot_param
     std::vector<gtsam::Pose3> GT_pose_;
     fkSolver(params, cable_offset, cable_length_collection, cable_forces_collection, 
              p_platform_collection, rot_init_platform_collection, delta_rot_platform_collection, 
-             pulley_position_estimate, &Optimized_pose_, &GT_pose_, &fk_results);
+             pulley_position_estimate, first_cable_force_magnitude, &Optimized_pose_, &GT_pose_, &fk_results);
 
     *Optimized_pose = Optimized_pose_;
     *GT_pose = GT_pose_;

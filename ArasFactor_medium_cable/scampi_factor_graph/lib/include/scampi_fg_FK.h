@@ -225,4 +225,36 @@ namespace gtsam
             return (Vector(4) << Fkresidual_func).finished();
         }
     };
+
+    
+    class FK_factor_graoh_cost_force_sensor : public NoiseModelFactorN<double, double>
+    {
+    private:
+        double force;    
+
+    public:
+        // Constructor
+        FK_factor_graoh_cost_force_sensor(Key key1, Key key2, double force_, const SharedNoiseModel &model) 
+        : NoiseModelFactorN<double, double>(model, key1, key2), force(force_) {}
+
+        // Evaluate the error
+        Vector evaluateError(const double &fh1, const double &fv1,
+                             OptionalMatrixType H1,
+                             OptionalMatrixType H2) const override
+        {   
+            double Fkresidual_func = std::sqrt(std::pow(fh1, 2.0) + std::pow(fv1, 2.0)) - force;
+            if(H1)
+            {
+                Eigen::Matrix<double, 1, 1> Fkresidual_func_wrt_fh1 = Eigen::Matrix<double, 1, 1>(fh1 / (std::sqrt(std::pow(fh1, 2.0) + std::pow(fv1, 2.0))));
+                *H1 = (Matrix(1, 1) << Fkresidual_func_wrt_fh1).finished();
+            }
+            if(H2)
+            {
+                Eigen::Matrix<double, 1, 1> Fkresidual_func_wrt_fv1 = Eigen::Matrix<double, 1, 1>(fv1 / (std::sqrt(std::pow(fh1, 2.0) + std::pow(fv1, 2.0))));
+                *H2 = (Matrix(1, 1) << Fkresidual_func_wrt_fv1).finished();
+            }
+            // std::cout << "cost-enc" << Fkresidual_func << std::endl;
+            return (Vector(1) << Fkresidual_func).finished();
+        }
+    };
 }

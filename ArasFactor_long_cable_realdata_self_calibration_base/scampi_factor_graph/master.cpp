@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
     for (int outer_interval = 0; outer_interval < probabilistic_sample; outer_interval++)  
     {  
         std::default_random_engine generator(std::random_device{}());
-        std::normal_distribution<double> pulley_location_distribution(0.0, 0.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 5.0/sqrt(3.0)/3.0);
 
         Eigen::Vector3d Pulley_a(-125.0, -110.0, 48.0);
         Eigen::Vector3d Pulley_b( 125.0, -110.0, 48.0);

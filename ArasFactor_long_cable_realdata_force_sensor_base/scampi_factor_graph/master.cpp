@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
         std::uniform_real_distribution<double> distribution_offset(0.0, 0.0);
 
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
-        std::normal_distribution<double> pulley_location_distribution(0.0, 4.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 10.0/sqrt(3.0)/3.0);
 
         // robot characteristic
         CableRobotParams robot_params(0.7100703113867337, 333.54);

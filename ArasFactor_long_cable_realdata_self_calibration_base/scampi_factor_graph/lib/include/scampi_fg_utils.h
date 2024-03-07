@@ -178,36 +178,39 @@ void changeOrderForSolver(RobotState<T> state,
                           Eigen::VectorXi *new_order)
 {
     int N = params.pulleys.size();
-    std::vector<int> order(N);
+    VectorXi order(N);
 
-    // Create a vector of pairs containing the indices and corresponding cable lengths
-    std::vector<std::pair<int, T>> index_length_pairs;
-    for (int i = 0; i < N; ++i) {
-        index_length_pairs.emplace_back(i, cable_length[i]);
+    double distances[N];
+    double max_distance, distance = 0;
+    int max_index = 0;
+    VectorXi indeces(N);
+    for(int i=0; i < N; i++)
+    {
+        indeces[i] = i;
+        // distance = cable_length[i];
+        distance = (params.pulleys[i] - state.p_platform).norm();
+        if (distance > max_distance)
+        {
+            max_distance = distance;
+            max_index = i;
+        }
     }
 
-    // Sort the vector of pairs by cable length in descending order
-    std::sort(index_length_pairs.begin(), index_length_pairs.end(), [](const auto& lhs, const auto& rhs) {
-        return lhs.second > rhs.second;
-    });
-
-    // Extract the sorted indices
-    for (int i = 0; i < N; ++i) {
-        order[i] = index_length_pairs[i].first;
-    }
-
-    // Update params_reordered with reordered pulleys and ef_points
+    //compute the reorder index map
+    order.block(0,0,N - max_index,1) = indeces.block(max_index,0, N-max_index,1);
+    order.block(N - max_index,0,max_index,1) = indeces.block(0,0,max_index,1);
+    //return a reordered params data structure
     *params_reordered = params;
+
     params_reordered->ef_points.clear();
     params_reordered->pulleys.clear();
 
-    for (int i = 0; i < N; ++i) {
+    for(int i=0; i < N; i++)
+    {
         params_reordered->pulleys.push_back(params.pulleys[order[i]]);
         params_reordered->ef_points.push_back(params.ef_points[order[i]]);
     }
-
-    // Convert the reordered indices to Eigen::VectorXi
-    *new_order = Eigen::Map<Eigen::VectorXi>(order.data(), order.size());
+    *new_order = order;
 }
 
 

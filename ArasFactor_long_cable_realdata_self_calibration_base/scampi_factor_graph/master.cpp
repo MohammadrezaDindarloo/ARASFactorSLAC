@@ -4,7 +4,7 @@ int main(int argc, char *argv[])
 {   
     std::vector<double> force_differences;
     std::vector<gtsam::Vector10> probabilistic_calibration_result;
-    int probabilistic_sample = 2;
+    int probabilistic_sample = 3;
     for (int outer_interval = 0; outer_interval < probabilistic_sample; outer_interval++)  
     {  
         std::default_random_engine generator(std::random_device{}());
@@ -198,8 +198,8 @@ int main(int argc, char *argv[])
                 // rot_init_ = rot_init_.Ypr(yaw, pitch, roll);
                 // Eigen::Matrix3d rot_init = gtsamRot3ToEigenMatrix(rot_init_);                  
                 // auto p_platform = Eigen::Vector3d(-1.0,8.0,20.0);
+                // std::cout << "sample: " << i+1 << std::endl;
                 std::vector<MatrixXd> IKresults = IK_Factor_Graph_Optimization(robot_params_calibration, rot_init_platform_collection[i], p_platform_collection[i], cable_length_collection[i], pulley_position_estimate, inner_interval);
-                std::cout << "sample: " << i+1 << std::endl;
                 // std::cout << std::endl << "rot_platform: " << std::endl << IKresults[0] << std::endl;
                 // gtsam::Rot3 rotplat = EigenMatrixToGtsamRot3(IKresults[0]);
                 // std::cout << std::endl << "rot_platform roll: " << std::endl << rotplat.roll() * 180.0/M_PI << std::endl;
@@ -259,6 +259,7 @@ int main(int argc, char *argv[])
             std::cout << "Offset C calibration in  mm: " << error_offset_c << std::endl;   
             std::cout << "Offset D calibration in  mm: " << error_offset_d << std::endl;   
             std::cout << "sum of offset error  after  calibration  in  mm: " << sum_offset_error_optimized << std::endl;
+            std::cout << "itration: " << outer_interval << std::endl;
             std::cout << "-----------------Calibration Reults------------------------" << std::endl << std::endl;
 
             pulley_position_estimate.row(0) = (Eigen::Vector3d (Eigen::Vector3d(FKresults[0].row(0))));

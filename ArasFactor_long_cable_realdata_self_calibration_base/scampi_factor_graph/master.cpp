@@ -4,7 +4,7 @@ int main(int argc, char *argv[])
 {   
     std::vector<double> force_differences;
     std::vector<gtsam::Vector10> probabilistic_calibration_result;
-    int probabilistic_sample = 3;
+    int probabilistic_sample = 10;
     for (int outer_interval = 0; outer_interval < probabilistic_sample; outer_interval++)  
     {  
         std::default_random_engine generator(std::random_device{}());

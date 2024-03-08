@@ -3,7 +3,7 @@
 int main(int argc, char *argv[])
 {  
     std::vector<gtsam::Vector10> calibration_result;
-    int size_of_calib_sample = 50;
+    int size_of_calib_sample = 10;
     for (int interval = 0; interval < size_of_calib_sample; interval++) 
     {            
         std::default_random_engine generator(std::random_device{}());
@@ -126,10 +126,6 @@ int main(int argc, char *argv[])
             rot_init_platform_collection.push_back(rot_init);
 
             gtsam::Rot3 delta_rot_;
-            double pitch_deltaRot = 0.0 * M_PI/180.0;
-            double roll_deltaRot = 0.0 * M_PI/180.0;
-            double yaw_deltaRot = 0.0 * M_PI/180.0;
-            // Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3(delta_rot_.Ypr(yaw_deltaRot, pitch_deltaRot, roll_deltaRot))); 
             Eigen::Matrix3d deltaRot = gtsamRot3ToEigenMatrix(gtsam::Rot3()); 
             delta_rot_platform_collection.push_back(deltaRot);
         }

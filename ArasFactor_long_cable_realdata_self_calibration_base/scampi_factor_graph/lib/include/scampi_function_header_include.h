@@ -33,6 +33,39 @@
 #include "model_include/FK_residual_func_cost3_wrt_pd.h"
 #include "model_include/FK_residual_func_cost3_wrt_offset.h"
 
+// cost4 ---------
+#include "model_include/FK_residual_func_cost4.h"
+#include "model_include/FK_residual_func_cost4_wrt_fh1.h"
+#include "model_include/FK_residual_func_cost4_wrt_fv1.h"
+#include "model_include/FK_residual_func_cost4_wrt_transformation.h"
+#include "model_include/FK_residual_func_cost4_wrt_DeltaRot.h"
+#include "model_include/FK_residual_func_cost4_wrt_pa.h"
+#include "model_include/FK_residual_func_cost4_wrt_pb.h"
+#include "model_include/FK_residual_func_cost4_wrt_pc.h"
+#include "model_include/FK_residual_func_cost4_wrt_pd.h"
+
+// cost5 ---------
+#include "model_include/FK_residual_func_cost5.h"
+#include "model_include/FK_residual_func_cost5_wrt_fh1.h"
+#include "model_include/FK_residual_func_cost5_wrt_fv1.h"
+#include "model_include/FK_residual_func_cost5_wrt_transformation.h"
+#include "model_include/FK_residual_func_cost5_wrt_DeltaRot.h"
+#include "model_include/FK_residual_func_cost5_wrt_pa.h"
+#include "model_include/FK_residual_func_cost5_wrt_pb.h"
+#include "model_include/FK_residual_func_cost5_wrt_pc.h"
+#include "model_include/FK_residual_func_cost5_wrt_pd.h"
+#include "model_include/FK_residual_func_cost5_wrt_offset.h"
+
+// cost6 ---------
+#include "model_include/FK_residual_func_cost6.h"
+#include "model_include/FK_residual_func_cost6_wrt_fh1.h"
+#include "model_include/FK_residual_func_cost6_wrt_fv1.h"
+#include "model_include/FK_residual_func_cost6_wrt_transformation.h"
+#include "model_include/FK_residual_func_cost6_wrt_DeltaRot.h"
+#include "model_include/FK_residual_func_cost6_wrt_pa.h"
+#include "model_include/FK_residual_func_cost6_wrt_pb.h"
+#include "model_include/FK_residual_func_cost6_wrt_pc.h"
+#include "model_include/FK_residual_func_cost6_wrt_pd.h"
 
 // ************************************ IK ************************************
 // cost1 ---------

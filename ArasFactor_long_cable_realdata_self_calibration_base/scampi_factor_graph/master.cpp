@@ -4,7 +4,7 @@ int main(int argc, char *argv[])
 {   
     std::vector<double> force_differences;
     std::vector<gtsam::Vector10> probabilistic_calibration_result;
-    int probabilistic_sample = 1200;
+    int probabilistic_sample = 10;
     for (int outer_interval = 0; outer_interval < probabilistic_sample; outer_interval++)  
     {  
         std::default_random_engine generator(std::random_device{}());
@@ -212,10 +212,10 @@ int main(int argc, char *argv[])
                 // std::cout << std::endl << "c2: " << std::endl << IKresults[4] << std::endl;
                 // std::cout << std::endl << "b_in_w: " << std::endl << IKresults[5] << std::endl;
 
-                // std::cout << std::endl << "sagging_1: " << std::endl << IKresults[1].col(0)[0] - (IKresults[5].col(0) - Pulley_a).norm() << std::endl;
-                // std::cout << std::endl << "sagging_2: " << std::endl << IKresults[1].col(0)[1] - (IKresults[5].col(1) - Pulley_b).norm() << std::endl;
-                // std::cout << std::endl << "sagging_3: " << std::endl << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;
-                // std::cout << std::endl << "sagging_4: " << std::endl << IKresults[1].col(0)[3] - (IKresults[5].col(3) - Pulley_d).norm() << std::endl;
+                // std::cout << "sagging_1: " << IKresults[1].col(0)[0] - (IKresults[5].col(0) - Pulley_a).norm() << std::endl;
+                // std::cout << "sagging_2: " << IKresults[1].col(0)[1] - (IKresults[5].col(1) - Pulley_b).norm() << std::endl;
+                // std::cout << "sagging_3: " << IKresults[1].col(0)[2] - (IKresults[5].col(2) - Pulley_c).norm() << std::endl;
+                // std::cout << "sagging_4: " << IKresults[1].col(0)[3] - (IKresults[5].col(3) - Pulley_d).norm() << std::endl;
                 // std::cout << "dif_l_cat: " << std::endl << IKresults[1]-cable_length_collection[i] << std::endl;
                 // std::cout << "dif_forces: " << IKresults[2].col(0).norm()-first_cable_force_magnitude[i] << std::endl;
                 force_differences.push_back(IKresults[2].col(0).norm()-first_cable_force_magnitude[i]);

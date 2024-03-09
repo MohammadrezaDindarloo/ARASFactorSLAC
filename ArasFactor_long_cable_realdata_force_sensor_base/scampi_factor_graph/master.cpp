@@ -8,6 +8,7 @@ int main(int argc, char *argv[])
     {            
         std::default_random_engine generator(std::random_device{}());
         std::uniform_real_distribution<double> distribution_offset(0.0, 0.0);
+        std::normal_distribution<double> force_distribution(0.0, 10.0/3.0);
 
         // std::uniform_real_distribution<double> pulley_location_distribution(-0.4/sqrt(3.0), 0.4/sqrt(3.0));
         std::normal_distribution<double> pulley_location_distribution(0.0, 10.0/sqrt(3.0)/3.0);
@@ -174,7 +175,7 @@ int main(int argc, char *argv[])
         // Rewrite the data in it's object
         for (size_t i = 0; i < real_data_forces.size(); i++)
         {   
-            first_cable_force_magnitude.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]).norm());
+            first_cable_force_magnitude.push_back(Eigen::Vector2d(real_data_forces[i][0], real_data_forces[i][1]).norm() + force_distribution(generator));
             double fh0, fv0;
             computeInitCableForcesCalibration<double>(&fh0, &fv0, p_platform_collection[i], rot_init_platform_collection[i], params_calibration);
             cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>({fh0, -fv0})); 

@@ -350,7 +350,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     initial_estimate.insert(Symbol('p', 1), gtsam::Point3(pulley_position_estimate.row(1)));
     initial_estimate.insert(Symbol('p', 2), gtsam::Point3(pulley_position_estimate.row(2)));
     initial_estimate.insert(Symbol('p', 3), gtsam::Point3(pulley_position_estimate.row(3)));
-    initial_estimate.insert(Symbol('o', 0), gtsam::Vector4(cable_length_collection[0][0], cable_length_collection[0][1], cable_length_collection[0][2], cable_length_collection[0][3]));
+    initial_estimate.insert(Symbol('o', 0), gtsam::Vector4(1.0, 1.0, 1.0, 1.0));
 
     gtsam::LevenbergMarquardtParams params; 
     int max_iterations = params.maxIterations;

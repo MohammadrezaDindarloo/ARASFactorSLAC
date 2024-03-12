@@ -218,7 +218,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     // Encoder noise model
     double encoder_noise_gain = 1.0;
     encoder_noise_gain = encoder_noise_gain * all_noise_activation;
-    std::normal_distribution<double> encoder_noise(0.0, encoder_noise_gain * (0.005)/3.0); // 0.1 degree in orientation error
+    std::normal_distribution<double> encoder_noise(0.0, encoder_noise_gain * (0.0055)/3.0); // 0.1 degree in orientation error
 
     // UWB noise model
     double uwb_noise_gain = 1.0;
@@ -248,12 +248,12 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
     
     // Cost noise models ****************************************************************************************************************************************************************
-    auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 6.0/3.0, 6.0/3.0, 6.0/3.0, 6.0/3.0).finished());
+    auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 20.0/3.0, 20.0/3.0, 20.0/3.0, 20.0/3.0).finished());
     // auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 1.2/3.0 ); // z        0.5/3.0
     auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 2.0/3.0); // (Rigid cable, without sagging)    
-    auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 2.8/3.0, 2.2/3.0, 2.2/3.0, 2.2/3.0).finished()); 
+    auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 2.8/3.0, 2.8/3.0, 2.8/3.0, 2.8/3.0).finished()); 
     // auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.1/3.0); // encoder   0.2/3.0
-    auto Force_Sensor_noiseModel = gtsam::noiseModel::Isotropic::Sigma(1, 10.0/3.0); //  1.0
+    auto Force_Sensor_noiseModel = gtsam::noiseModel::Isotropic::Sigma(1, 15.0/3.0); //  1.0
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;
@@ -345,7 +345,7 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     initial_estimate.insert(Symbol('p', 2), gtsam::Point3(pulley_position_estimate.row(2)));
     initial_estimate.insert(Symbol('p', 3), gtsam::Point3(pulley_position_estimate.row(3)));
 
-    initial_estimate.insert(Symbol('o', 0), gtsam::Vector4(170.0, 170.0, 170.0, 170.0));
+    initial_estimate.insert(Symbol('o', 0), gtsam::Vector4(100.0, 250.0, 100.0, 250.0)); // (180, 170, 155, 170) // one of the cable guess should be more than reality
 
     gtsam::LevenbergMarquardtParams params; 
     std::cout << std::endl;

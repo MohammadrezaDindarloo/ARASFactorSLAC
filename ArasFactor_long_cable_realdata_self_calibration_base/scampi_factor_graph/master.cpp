@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
         Eigen::Vector3d Pulley_d(-125.0,  110.0, 48.0);
 
         Eigen::Matrix<double, 4, 3> pulley_position_estimate;
-        pulley_position_estimate.row(0) = (Eigen::Vector3d (Pulley_a[0] + pulley_location_distribution(generator), Pulley_a[1] + pulley_location_distribution(generator), Pulley_a[2] + pulley_location_distribution(generator)));
+        pulley_position_estimate.row(0) = (Eigen::Vector3d (Pulley_a[0] + 0.0, Pulley_a[1] + 0.0, Pulley_a[2] + 0.0));
         pulley_position_estimate.row(1) = (Eigen::Vector3d (Pulley_b[0] + pulley_location_distribution(generator), Pulley_b[1] + pulley_location_distribution(generator), Pulley_b[2] + pulley_location_distribution(generator)));
         pulley_position_estimate.row(2) = (Eigen::Vector3d (Pulley_c[0] + pulley_location_distribution(generator), Pulley_c[1] + pulley_location_distribution(generator), Pulley_c[2] + pulley_location_distribution(generator)));
         pulley_position_estimate.row(3) = (Eigen::Vector3d (Pulley_d[0] + pulley_location_distribution(generator), Pulley_d[1] + pulley_location_distribution(generator), Pulley_d[2] + pulley_location_distribution(generator)));
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
                 // std::cout << "dif_forces: " << IKresults[2].col(0).norm()-first_cable_force_magnitude[i] << std::endl;
                 force_differences.push_back(IKresults[2].col(0).norm()-first_cable_force_magnitude[i]);
                 // cable_length_collection.push_back(IKresults[1]);
-                delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
+                // delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
                 cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));  
             }
 

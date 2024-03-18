@@ -120,8 +120,7 @@ def getGeometricVariables(robotstate_, robotparams_, geometric_vars: GeometricVa
         geometric_vars.b_in_w.append(b_in_w)
         # compute the x-y projection of the direction from end-effector attachment point to the pulley
         sx = sf.Matrix(b_in_w) - sf.Matrix(robotparams_.pulleys[i])
-        s = sf.Matrix(b_in_w) - sf.Matrix(
-            robotparams_.pulleys[i])  # unit vector along cable direction (assuming no sag)
+        s = sf.Matrix(b_in_w) - sf.Matrix(robotparams_.pulleys[i])  # unit vector along cable direction (assuming no sag)
         sx[2] = 0.0
         geometric_vars.sx.append(sx / calculate_norm(sx))
         geometric_vars.s.append(s / calculate_norm(s))
@@ -212,8 +211,8 @@ def getCableForces(fh, fv, robotstate_:RobotState, robotparams_, geometric_vars)
 
     J_aT = structure_matrix_Non_Flatten[0:4, :]
     J_uT = structure_matrix_Non_Flatten[4:6, :]
-    W_a = structure_matrix_Non_Flatten[0:4, 0]
-    W_u = structure_matrix_Non_Flatten[4:6, 0]
+    W_a = platform_wrench[0:4, 0]
+    W_u = platform_wrench[4:6, 0]
 
     # a subset of the structure matrix that defines the force in other cables as a function of forces of the first cable
     sub_structure_matrix = structure_matrix[0:6, 2:8]
@@ -7358,6 +7357,9 @@ def fkSolver(lc_cat_measure, rtation_init, params_, fk_result):
         residuals[i+8] = cat_vars.lc_cat[i] + offset[i] - lc_cat_measure[i]
         residuals[i+12] = calculate_norm(geom_vars.p_in_w[i]-geom_vars.b_in_w[i]) + offset[i] - lc_cat_measure[i]
         residuals[i+16] = cat_vars.y0_cat[i] - fh/gc * ( sf.cosh(gc/fh * (0.0 + cat_vars.c1[i])) - cat_vars.c2[i] )
+    
+    # This static constriant is for a rigid cable and can't use for catenary cable equations.
+    # For our configuration we should use force distribution for s to devide horizental and vertical axis.
     residuals[20]=state.static_constrain[0]
     residuals[21]=state.static_constrain[1]
     # calculate_norm(geom_vars.p_in_w[i]-geom_vars.b_in_w[i]) - lc_cat_measure[i]     # rigid cabel

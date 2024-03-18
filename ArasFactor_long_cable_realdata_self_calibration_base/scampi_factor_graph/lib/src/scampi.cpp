@@ -272,24 +272,24 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
     auto prior_noiseModel_pose3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(6)<<translationnoise_prior, translationnoise_prior, translationnoise_prior, orientationnoise_prior, orientationnoise_prior, orientationnoise_prior).finished());
     
     auto prior_noiseModel_offset = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<<1e-5, 1e-5, 1e-5, 1e-5).finished());
-    auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< 0.001/3.0, 0.001/3.0, 0.001/3.0).finished()); // 1.0/sqrt(3.0)/3.0
+    auto prior_noiseModel_pulley = noiseModel::Diagonal::Sigmas((gtsam::Vector(3)<< 1e-5/sqrt(3.0), 1e-5/sqrt(3.0), 1e-5/sqrt(3.0)).finished()); //
 
     // Cost noise models including offset ********************************************************************************************************************************
-    // auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.08/3.0, 0.08/3.0, 0.08/3.0, 0.08/3.0).finished()); // z
-    // auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.55/3.0); // l -||b-a||  
-    // auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.015/3.0, 0.015/3.0, 0.015/3.0, 0.015/3.0).finished()); // z_0
-    // auto Sensor_noiseModel_cost4 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.08/3.0, 0.08/3.0, 0.08/3.0, 0.08/3.0).finished());
-    // auto Sensor_noiseModel_cost5 = gtsam::noiseModel::Isotropic::Sigma(4, 0.55/3.0); // ||b-a|| + offset - enc 
-    // auto Sensor_noiseModel_cost6 = gtsam::noiseModel::Isotropic::Sigma(2, 5.0e-13/3.0); // static  
+    // auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.07/3.0, 0.07/3.0, 0.07/3.0, 0.07/3.0).finished()); // z
+    auto Sensor_noiseModel_cost1 = gtsam::noiseModel::Isotropic::Sigma(4, 0.07/3.0); // z  
+    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.65/3.0); // l -||b-a||  
+    // auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.007/3.0, 0.007/3.0, 0.007/3.0, 0.007/3.0).finished()); // encoder
+    auto Sensor_noiseModel_cost3 = gtsam::noiseModel::Isotropic::Sigma(4, 0.007/3.0); // encoder 
+    // auto Sensor_noiseModel_cost4 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.07/3.0, 0.07/3.0, 0.07/3.0, 0.07/3.0).finished()); // z_0
+    auto Sensor_noiseModel_cost4 = gtsam::noiseModel::Isotropic::Sigma(4, 0.07/3.0); // z_0
+    auto Sensor_noiseModel_cost5 = gtsam::noiseModel::Isotropic::Sigma(4, 0.65/3.0); // ||b-a|| + offset - enc 
 
-    // Cost noise models without offset ********************************************************************************************************************************
-    auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.0005/3.0, 0.08/3.0, 0.08/3.0, 0.08/3.0).finished()); // z
-    auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.55/3.0); // l -||b-a||  
-    auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.0005/3.0, 0.03/3.0, 0.03/3.0, 0.03/3.0).finished());
-    auto Sensor_noiseModel_cost4 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.08/3.0, 0.08/3.0, 0.08/3.0, 0.08/3.0).finished()); // z_0
-    auto Sensor_noiseModel_cost5 = gtsam::noiseModel::Isotropic::Sigma(4, 0.55/3.0); // ||b-a|| + offset - enc 
-    auto Sensor_noiseModel_cost6 = gtsam::noiseModel::Isotropic::Sigma(2, 5.0e-13/3.0); // static  
-
+    // // Cost noise models without offset ********************************************************************************************************************************
+    // auto Sensor_noiseModel_cost1 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.0005/3.0, 0.07/3.0, 0.07/3.0, 0.07/3.0).finished()); // z
+    // auto Sensor_noiseModel_cost2 = gtsam::noiseModel::Isotropic::Sigma(4, 0.65/3.0); // l -||b-a||  
+    // auto Sensor_noiseModel_cost3 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.0005/3.0, 0.007/3.0, 0.007/3.0, 0.007/3.0).finished()); // encoder
+    // auto Sensor_noiseModel_cost4 = noiseModel::Diagonal::Sigmas((gtsam::Vector(4)<< 0.0005/3.0, 0.07/3.0, 0.07/3.0, 0.07/3.0).finished()); // z_0
+    // auto Sensor_noiseModel_cost5 = gtsam::noiseModel::Isotropic::Sigma(4, 0.65/3.0); // ||b-a|| + offset - enc 
 
     std::vector<gtsam::Pose3> Optimized_pose_;
     std::vector<gtsam::Pose3> GT_pose_;
@@ -307,7 +307,6 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
         graph.add(std::make_shared<FK_factor_graoh_cost3>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), Symbol('o', 0), enc_data, Sensor_noiseModel_cost3));    // l + offset - enc 
         graph.add(std::make_shared<FK_factor_graoh_cost4>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), enc_data, Sensor_noiseModel_cost4));                    // z_0
         graph.add(std::make_shared<FK_factor_graoh_cost5>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), Symbol('o', 0), enc_data, Sensor_noiseModel_cost5));    // ||b-a|| + offset - enc
-        graph.add(std::make_shared<FK_factor_graoh_cost6>(Symbol('h', i), Symbol('v', i), Symbol('r', i), Symbol('X', i), Symbol('p', 0), Symbol('p', 1), Symbol('p', 2), Symbol('p', 3), enc_data, Sensor_noiseModel_cost6));                    // static  
 
         if (sensor_mode_prior_factory)
         {
@@ -365,13 +364,17 @@ void forward_kinematic_factor_graph_optimizer(std::vector<double> cable_offset,
         initial_estimate.insert(Symbol('X', i), gtsam::Pose3(EigenMatrixToGtsamRot3(rot_init_platform_collection[i]), p_platform_collection[i]));
     }
 
-    graph.emplace_shared<gtsam::PriorFactor<gtsam::Vector4>>(Symbol('o', 0), gtsam::Vector4(cable_length_collection[0][0], cable_length_collection[0][1], cable_length_collection[0][2], cable_length_collection[0][3]), prior_noiseModel_offset);
+    // graph.emplace_shared<gtsam::PriorFactor<gtsam::Vector4>>(Symbol('o', 0), gtsam::Vector4(cable_length_collection[0][0], cable_length_collection[0][1], cable_length_collection[0][2], cable_length_collection[0][3]), prior_noiseModel_offset);
+
+    Eigen::Vector3d Pulley_a(-125.0, -110.0, 48.0);
+    Eigen::Vector3d Pulley_b( 125.0, -110.0, 48.0);
+    Eigen::Vector3d Pulley_c( 125.0,  110.0, 48.0);
+    Eigen::Vector3d Pulley_d(-125.0,  110.0, 48.0);
 
     // graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 0), gtsam::Point3(pulley_position_estimate.row(0)), prior_noiseModel_pulley);
     // graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 1), gtsam::Point3(pulley_position_estimate.row(1)), prior_noiseModel_pulley);
     // graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 2), gtsam::Point3(pulley_position_estimate.row(2)), prior_noiseModel_pulley);
     // graph.emplace_shared<gtsam::PriorFactor<gtsam::Point3>>(Symbol('p', 3), gtsam::Point3(pulley_position_estimate.row(3)), prior_noiseModel_pulley);
-
 
     // Initial estimate
     initial_estimate.insert(Symbol('p', 0), gtsam::Point3(pulley_position_estimate.row(0)));

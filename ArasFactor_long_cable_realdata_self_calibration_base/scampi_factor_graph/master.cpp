@@ -4,11 +4,12 @@ int main(int argc, char *argv[])
 {   
     std::vector<double> force_differences;
     std::vector<gtsam::Vector10> probabilistic_calibration_result;
-    int probabilistic_sample = 10;
+    int probabilistic_sample = 1;
     for (int outer_interval = 0; outer_interval < probabilistic_sample; outer_interval++)  
     {  
         std::default_random_engine generator(std::random_device{}());
-        std::normal_distribution<double> pulley_location_distribution(0.0, 10.0/sqrt(3.0)/3.0);
+        std::normal_distribution<double> pulley_location_distribution(0.0, 0.0/sqrt(3.0));
+        // std::uniform_real_distribution<double> pulley_location_distribution(0.1 * -10.0/sqrt(3.0), 0.1 * 10.0/sqrt(3.0));
 
         Eigen::Vector3d Pulley_a(-125.0, -110.0, 48.0);
         Eigen::Vector3d Pulley_b( 125.0, -110.0, 48.0);
@@ -220,7 +221,7 @@ int main(int argc, char *argv[])
                 // std::cout << "dif_forces: " << IKresults[2].col(0).norm()-first_cable_force_magnitude[i] << std::endl;
                 force_differences.push_back(IKresults[2].col(0).norm()-first_cable_force_magnitude[i]);
                 // cable_length_collection.push_back(IKresults[1]);
-                // delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
+                delta_rot_platform_collection.push_back(rot_init_platform_collection[i].inverse() * IKresults[0]);
                 cable_forces_collection.push_back(Eigen::Matrix<double, 2, 1>(IKresults[2].col(0)));  
             }
 

@@ -1,38 +1,88 @@
 # ARASFactorSLAC
 
+![GitHub release](https://img.shields.io/github/v/release/MohammadrezaDindarloo/ARASFactorSLAC)
+![GitHub issues](https://img.shields.io/github/issues/MohammadrezaDindarloo/ARASFactorSLAC)
+![GitHub license](https://img.shields.io/github/license/MohammadrezaDindarloo/ARASFactorSLAC)
+![GitHub stars](https://img.shields.io/github/stars/MohammadrezaDindarloo/ARASFactorSLAC)
+
+<p align="center">
+  <img src="path_to_your_logo_or_image" alt="ARASFactorSLAC Logo" width="200">
+</p>
+
 Welcome to the **ARASFactorSLAC** repository! This project contains the implementation of a self-calibration and localization framework for Cable-Driven Parallel Robots (CDPRs) with sagging cables. The framework is designed to iteratively refine kinematic parameters, including anchor point locations and initial cable lengths, while simultaneously localizing the end-effector using a graph-based approach that considers the sagging effect of cables.
 
-## Table of Contents
+---
+
+## 📚 Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
-- [Installation](#installation)
 - [Usage](#usage)
 - [Repository Structure](#repository-structure)
 - [Results](#results)
 - [Citation](#citation)
 
+---
+
 ## Overview
+
+<p align="center">
+  <img src="path_to_your_demo_gif_or_video" alt="ARASFactorSLAC Demo">
+</p>
 
 This repository provides the code and resources needed to implement and test the simultaneous localization and calibration (SLAC) procedure for large-scale and small-scale CDPRs, taking into account cable sagging effects. The framework is validated against Finite Element (FE) simulations to ensure accuracy and applicability across different robot configurations.
 
 The project is based on the paper titled *"A Graph-Based Self-Calibration Technique for Cable-Driven Robots with Sagging Cable."* The proposed method uses a factor graph that integrates onboard sensor data and a catenary cable model to improve both the localization and calibration processes for CDPRs.
 
-## Features
+---
+
+## 🚀 Features
 
 - **Graph-Based SLAC:** Utilizes factor graphs for efficient simultaneous localization and calibration of kinematic parameters.
-- **Cable Sag Modeling:** Incorporates a catenary cable model to address sagging effects.
-- **Scalability:** Applicable to both small-scale and large-scale CDPRs.
-- **Validation:** Validated through FE simulations in RecurDyn software.
+- **📏 Cable Sag Modeling:** Incorporates a catenary cable model to address sagging effects.
+- **🔄 Scalability:** Applicable to both small-scale and large-scale CDPRs.
+- **✅ Validation:** Validated through FE simulations in RecurDyn software.
 
-## Installation
+---
 
-To get started with the ARASFactorSLAC project, clone the repository and make the linkages:
 
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/MohammadrezaDindarloo/ARASFactorSLAC.git
-   cd ARASFactorSLAC
+## Usage
+
+To run the calibration and localization procedure using ARASFactorSLAC, follow these steps:
+
+1. **Setting Your Robot Specific Details:**
+   - Before running the main calibration and localization procedure, you need to configure the system model to match your specific robot.
+   - **Provide Robot Characteristics:**
+     - Input your robot's details into the system model, including:
+       - Robot mass
+       - Robot center of mass (CoM)
+       - Robot size
+       - Cable attachment points on the robot
+   - **Generate the Model:**
+     - Use the `model_generator.py` script to create the model for your robot. This script will generate all the necessary model files, including the Jacobians, and save them in the `model_system_output` directory.
+   - **Replace Model Files:**
+     - After generating the model, replace the existing robot model files in the project with the newly generated ones from the `model_system_output` directory. These files should be placed in the appropriate directories as required by your scenario.
+
+2. **Prepare the Data:**
+   - Collect the required sensor data, including:
+     - End-effector poses
+     - Relative cable-length measurements
+     - Tension values for the reference cable at the end-effector attachment point
+   - Ensure your data is formatted as required by the example scripts provided.
+
+3. **Run Calibration and Localization:**
+   - Use the provided scripts to execute the ARASFactorSLAC procedure. Compile and run the `main.cpp` corresponding to your scenario.
+
+4. **Analyze Results:**
+   - The results will be saved in the specified output directory. These will include:
+     - Calibrated kinematic parameters
+     - Localization data for the end-effector
+     - Evaluation metrics such as error rates and accuracy
+   - Review the output files and consider visualizing the calibration and localization results for further analysis.
+
+---
+
+
 
 ## Usage
 
@@ -71,6 +121,10 @@ To run the calibration and localization procedure using ARASFactorSLAC, follow t
 
 ## Our Results from Provided Dataset
 
+---
+
+## Our Results from Provided Dataset
+
 The ARASFactorSLAC framework has been rigorously validated through Finite Element (FE) simulations using the RecurDyn software. The results demonstrate the accuracy and effectiveness of the proposed simultaneous localization and calibration (SLAC) procedure for both small and large-scale Cable-Driven Parallel Robots (CDPRs).
 
 ### Model Verification
@@ -99,9 +153,10 @@ The significance of considering cable sag in the calibration process was highlig
 
 These results validate the robustness and precision of the ARASFactorSLAC framework, making it a powerful tool for the simultaneous localization and calibration of CDPRs across varying scales and conditions.
 
-## Citation
+## 📄 Citation
 
-If you use the ARASFactorSLAC framework in your research or project, please cite the following paper:
+If you use the ARASFactorSLAC framework in your research or project, please cite the following papers:
+
 ```bibtex
 @inproceedings{khorrambakht2023graph,
   title={Graph-Based Visual-Kinematic Fusion and Monte Carlo Initialization for Fast-Deployable Cable-Driven Robots},

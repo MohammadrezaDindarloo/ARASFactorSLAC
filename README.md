@@ -1,13 +1,12 @@
 # ARASFactorSLAC
 
-![GitHub release](https://img.shields.io/github/v/release/MohammadrezaDindarloo/ARASFactorSLAC)
-![GitHub issues](https://img.shields.io/github/issues/MohammadrezaDindarloo/ARASFactorSLAC)
-![GitHub license](https://img.shields.io/github/license/MohammadrezaDindarloo/ARASFactorSLAC)
-![GitHub stars](https://img.shields.io/github/stars/MohammadrezaDindarloo/ARASFactorSLAC)
+[![IROS 2023](https://img.shields.io/badge/Conference-IROS%202023-orange.svg)](https://www.iros2023.org/)
+[![C++](https://img.shields.io/badge/Language-C++-blue.svg)](https://isocpp.org/)
+[![Python](https://img.shields.io/badge/Language-Python-green.svg)](https://www.python.org/)
+[![GTSAM](https://img.shields.io/badge/Library-GTSAM-brightgreen.svg)](https://gtsam.org/)
+[![Symforce](https://img.shields.io/badge/Library-Symforce-yellow.svg)](https://symforce.org/)
+[![RecurDyn](https://img.shields.io/badge/Tool-RecurDyn-red.svg)](https://www.functionbay.org/recurdyn/)
 
-<p align="center">
-  <img src="path_to_your_logo_or_image" alt="ARASFactorSLAC Logo" width="200">
-</p>
 
 Welcome to the **ARASFactorSLAC** repository! This project contains the implementation of a self-calibration and localization framework for Cable-Driven Parallel Robots (CDPRs) with sagging cables. The framework is designed to iteratively refine kinematic parameters, including anchor point locations and initial cable lengths, while simultaneously localizing the end-effector using a graph-based approach that considers the sagging effect of cables.
 
@@ -25,10 +24,6 @@ Welcome to the **ARASFactorSLAC** repository! This project contains the implemen
 ---
 
 ## Overview
-
-<p align="center">
-  <img src="path_to_your_demo_gif_or_video" alt="ARASFactorSLAC Demo">
-</p>
 
 This repository provides the code and resources needed to implement and test the simultaneous localization and calibration (SLAC) procedure for large-scale and small-scale CDPRs, taking into account cable sagging effects. The framework is validated against Finite Element (FE) simulations to ensure accuracy and applicability across different robot configurations.
 
@@ -117,11 +112,6 @@ To run the calibration and localization procedure using ARASFactorSLAC, follow t
      - Localization data for the end-effector
      - Evaluation metrics such as error rates and accuracy
    - Review the output files and consider visualizing the calibration and localization results for further analysis.
-
-
-## Our Results from Provided Dataset
-
----
 
 ## Our Results from Provided Dataset
 

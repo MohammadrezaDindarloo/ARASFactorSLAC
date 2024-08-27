@@ -78,41 +78,6 @@ To run the calibration and localization procedure using ARASFactorSLAC, follow t
 ---
 
 
-
-## Usage
-
-To run the calibration and localization procedure using ARASFactorSLAC, follow these steps:
-
-1. **Setting Your Robot Specific Details:**
-   - Before running the main calibration and localization procedure, you need to configure the system model to match your specific robot.
-   - **Provide Robot Characteristics:**
-     - Input your robot's details into the system model, including:
-       - Robot mass
-       - Robot center of mass (CoM)
-       - Robot size
-       - Cable attachment points on the robot
-   - **Generate the Model:**
-     - Use the `model_generator.py` script to create the model for your robot. This script will generate all the necessary model files, including the Jacobians, and save them in the `model_system_output` directory.
-   - **Replace Model Files:**
-     - After generating the model, replace the existing robot model files in the project with the newly generated ones from the `model_system_output` directory. These files should be placed in the appropriate directories as required by your scenario.
-
-2. **Prepare the Data:**
-   - Collect the required sensor data, including:
-     - End-effector poses
-     - Relative cable-length measurements
-     - Tension values for the reference cable at the end-effector attachment point
-   - Ensure your data is formatted as required by the example scripts provided.
-
-3. **Run Calibration and Localization:**
-   - Use the provided scripts to execute the ARASFactorSLAC procedure. Compile and run the `main.cpp` corresponding to your scenario.
-
-4. **Analyze Results:**
-   - The results will be saved in the specified output directory. These will include:
-     - Calibrated kinematic parameters
-     - Localization data for the end-effector
-     - Evaluation metrics such as error rates and accuracy
-   - Review the output files and consider visualizing the calibration and localization results for further analysis.
-
 ## Our Results from Provided Dataset
 
 The ARASFactorSLAC framework has been rigorously validated through Finite Element (FE) simulations using the RecurDyn software. The results demonstrate the accuracy and effectiveness of the proposed simultaneous localization and calibration (SLAC) procedure for both small and large-scale Cable-Driven Parallel Robots (CDPRs).
